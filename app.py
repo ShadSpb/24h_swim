@@ -1,12 +1,19 @@
-from flask import Flask, Response, Blueprint
-from persons import persons
+from flask import Flask, Response
+from flasgger import Swagger
 
 from configuration import Configuration
 application_config = Configuration()
 
-app = Flask(__name__)
+from persons import persons
 
-other_routes = Blueprint("other_routes", __name__)
+app = Flask(__name__)
+swagger = Swagger(app, template={
+    "info": {
+        "title": "24hswim.de",
+        "description": "Backend API used to work with 24h swimming events",
+        "version": "1.0"
+    }
+})
 
 if __name__ == "__main__":
     @app.route('/test', methods=['GET'])
@@ -15,4 +22,4 @@ if __name__ == "__main__":
     
     app.register_blueprint(persons)
     
-    app.run(debug=True)
+    app.run(debug=False)

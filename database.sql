@@ -26,9 +26,10 @@ FOREIGN KEY(person_id) REFERENCES persons(person_id),
 PRIMARY KEY(competition_id, team_id, log_time)
 );
 
-INSERT INTO types VALUES ('1', 'organizer');
-INSERT INTO types VALUES ('2', 'referee');
-INSERT INTO types VALUES ('3', 'swimmer');
+INSERT INTO types VALUES ('1', 'Organizer');
+INSERT INTO types VALUES ('2', 'Referee');
+INSERT INTO types VALUES ('3', 'Swimmer');
+INSERT INTO types VALUES ('4', 'Admin');
 
 INSERT INTO "teams" VALUES ('1', 'Test team');
 INSERT INTO "teams" VALUES ('2', 'Another team');
