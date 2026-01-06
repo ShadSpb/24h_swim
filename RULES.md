@@ -1,5 +1,8 @@
 Limitations:
 1. Each referee (schwimmbahn rechner) can be registered only on a single swimming line. One referee can not control swimmers on 2 different lines.
+=> Correction 1:
+It can happen that the referee is controlling two lanes during different times (e.g. lane 1 from 6-7 and lane 2 from 9-10). At 3am in the morning we even had the case that 1 referee was controlling 2 lanes as only 2-3 swimmers on both lanes.
+
 2. Each team can have only one swimmer swimming at the same moment of time on any line.
 2.1 Even if swimmer not in the water. Only single swimmer approved.
 3. Each swimmer can swim only on the line where his/her team was registered. Change of line is not possible or done by organizer.
@@ -38,3 +41,7 @@ Final goals:
 - Provide continuity for calculation.
 - Provide smooth interface for referees.
 
+UI considerations:
+- Swimmers which are below 12 year old must have a parent contact defined.
+- Swimmers which are below 12 year old must have parent present during their swimming.
+(During specific time e.g between 22:00 and 04:00 / All times)
