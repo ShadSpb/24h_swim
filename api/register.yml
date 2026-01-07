@@ -1,12 +1,21 @@
 swagger: '2.0'
 info:
-  title: Registration API
+  title: Register API
+  description: Register swimmers for competitions with lane assignments
   version: '1.0'
+host: localhost:5000
+basePath: /
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
 paths:
   /register/:
     post:
       summary: Register a swimmer for a competition
-      description: Register a swimmer for a specific competition and assign them to a lane number. Only one swimmer from a team can be registered simultaneously.
+      description: Register a swimmer for a specific competition and assign them to a lane number. Only one swimmer from a team can be registered simultaneously. Only accessible from localhost.
       tags:
         - Registration
       parameters:
@@ -72,69 +81,6 @@ paths:
                 type: string
                 example: "database error"
 
-  /unregister/:
-    post:
-      summary: Unregister a swimmer from a competition
-      description: Unregister a swimmer from a specific competition by changing their registration state to inactive.
-      tags:
-        - Registration
-      parameters:
-        - in: body
-          name: unregistration
-          description: Unregistration data
-          required: true
-          schema:
-            type: object
-            required:
-              - swimmer_id
-              - competition_id
-            properties:
-              swimmer_id:
-                type: string
-                description: Unique identifier of the swimmer (UUID)
-              competition_id:
-                type: integer
-                description: Unique identifier of the competition
-      responses:
-        200:
-          description: Swimmer successfully unregistered
-          schema:
-            type: object
-            properties:
-              status:
-                type: string
-                example: "ok"
-        400:
-          description: Bad request - invalid data
-          schema:
-            type: object
-            properties:
-              status:
-                type: string
-                example: "failed"
-              reason:
-                type: string
-                enum:
-                  - "no data"
-                  - "invalid json"
-                  - "invalid data"
-              error:
-                type: string
-                description: Error details if applicable
-        403:
-          description: Access denied. Only allowed from localhost.
-        500:
-          description: Internal server error - database error
-          schema:
-            type: object
-            properties:
-              status:
-                type: string
-                example: "failed"
-              reason:
-                type: string
-                example: "database error"
-
 tags:
   - name: Registration
-    description: Manage swimmer registration
+    description: Manage swimmer registration for competitions

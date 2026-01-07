@@ -16,15 +16,15 @@ swagger = Swagger(app, template={
         "version": "1.0.0"
     }
 })
-swagger.config['specs_route'] = "/api/"
+app.config['SWAGGER'] = {
+    'title': 'My API',
+    'uiversion': 3,
+    'doc_dir': './api/',
+    'openapi': '3.0.2'
+}
+app.register_blueprint(persons)
+app.register_blueprint(registration)
+app.register_blueprint(counter)
 
 if __name__ == "__main__":
-    @app.route('/test', methods=['GET'])
-    def test():
-        return Response("ok", mimetype='text/plain')
-    
-    app.register_blueprint(persons)
-    app.register_blueprint(registration)
-    app.register_blueprint(counter)
-    
     app.run(debug=False)

@@ -1,7 +1,16 @@
 swagger: '2.0'
 info:
   title: Persons API
+  description: Manage participants (swimmers, organizers, referees) in the 24h swimming event
   version: '1.0'
+host: localhost:5000
+basePath: /
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
 paths:
   /persons/:
     get:
@@ -167,9 +176,9 @@ paths:
         403:
           description: Access denied. Only allowed from localhost.
 
-    patch:
+    put:
       summary: Update a person's information
-      description: Modify the information of an existing person. Only accessible from localhost.
+      description: Modify the information of an existing person using the MODIFY HTTP method. Only accessible from localhost.
       tags:
         - Persons
       parameters:
@@ -184,6 +193,11 @@ paths:
           required: true
           schema:
             type: object
+            required:
+              - name
+              - surname
+              - type_id
+              - team_id
             properties:
               name:
                 type: string

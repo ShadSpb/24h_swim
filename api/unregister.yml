@@ -1,7 +1,7 @@
 swagger: '2.0'
 info:
-  title: Counter API
-  description: Track completed laps/cycles for swimmers during the event
+  title: Unregister API
+  description: Unregister swimmers from competitions
   version: '1.0'
 host: localhost:5000
 basePath: /
@@ -12,16 +12,16 @@ consumes:
 produces:
   - application/json
 paths:
-  /counter/:
+  /unregister/:
     post:
-      summary: Log a swimmer completing one cycle
-      description: Log that a swimmer has completed one cycle of the distance. The swimmer must be registered and in active state for the competition.
+      summary: Unregister a swimmer from a competition
+      description: Unregister a swimmer from a specific competition by setting their registration state_id to 2 (inactive). Only accessible from localhost.
       tags:
-        - Counter
+        - Registration
       parameters:
         - in: body
-          name: counter
-          description: Counter data
+          name: unregistration
+          description: Unregistration data
           required: true
           schema:
             type: object
@@ -37,15 +37,15 @@ paths:
                 description: Unique identifier of the competition
       responses:
         200:
-          description: Cycle successfully counted
+          description: Swimmer successfully unregistered
           schema:
             type: object
             properties:
               status:
                 type: string
-                example: "success"
+                example: "ok"
         400:
-          description: Bad request or counter forbidden
+          description: Bad request - invalid data
           schema:
             type: object
             properties:
@@ -58,8 +58,6 @@ paths:
                   - "no data"
                   - "invalid json"
                   - "invalid data"
-                  - "counter forbidden"
-                  - "database integrity error"
               error:
                 type: string
                 description: Error details if applicable
@@ -76,3 +74,7 @@ paths:
               reason:
                 type: string
                 example: "database error"
+
+tags:
+  - name: Registration
+    description: Manage swimmer registration for competitions
