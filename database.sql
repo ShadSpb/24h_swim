@@ -4,15 +4,15 @@
 PRAGMA foreign_keys = ON;
 CREATE TABLE "types"('type_id' INTEGER UNIQUE NOT NULL, 'type_name' TEXT NOT NULL, PRIMARY KEY(type_id));
 CREATE TABLE "teams"('team_id' INTEGER UNIQUE NOT NULL, 'team_name' TEXT NOT NULL, PRIMARY KEY(team_id));
-CREATE TABLE "persons" ('person_id' TEXT UNIQUE NOT NULL, 'name' TEXT NOT NULL, 'surname' TEXT NOT NULL, 'type' INTEGER NOT NULL, 'team' INTEGER NOT NULL, 
-FOREIGN KEY(type) REFERENCES types(type_id), 
-FOREIGN KEY(team) REFERENCES teams(team_id), 
+CREATE TABLE "persons" ('person_id' TEXT UNIQUE NOT NULL, 'name' TEXT NOT NULL, 'surname' TEXT NOT NULL, 'type_id' INTEGER NOT NULL, 'team_id' INTEGER NOT NULL, 
+FOREIGN KEY(type_id) REFERENCES types(type_id), 
+FOREIGN KEY(team_id) REFERENCES teams(team_id), 
 PRIMARY KEY('person_id'));
 CREATE TABLE "competitions" ('competition_id' INTEGER UNIQUE NOT NULL, 'organizer' INTEGER NOT NULL, "start_time" TEXT NOT NULL, "end_time" TEXT NOT NULL, 
 FOREIGN KEY(organizer) REFERENCES persons(person_id), 
 PRIMARY KEY('competition_id'));
 CREATE TABLE "person_state" ('state_id' INTEGER NOT NULL, 'state_name' TEXT NOT NULL, PRIMARY KEY(state_id));
-CREATE TABLE "registration"('competition_id' INTEGER NOT NULL, 'team_id' INTEGER NOT NULL, 'line_no' INTEGER NOT NULL, 'person_id' INTEGER UNIQUE NOT NULL, 'state_id' TEXT NOT NULL, 
+CREATE TABLE "registration"('competition_id' INTEGER NOT NULL, 'team_id' INTEGER NOT NULL, 'line_no' INTEGER NOT NULL, 'person_id' INTEGER UNIQUE NOT NULL, 'state_id' INTEGER NOT NULL, 
 FOREIGN KEY(competition_id) REFERENCES competitions(competition_id),
 FOREIGN KEY(team_id) REFERENCES teams(team_id),
 FOREIGN KEY(person_id) REFERENCES persons(person_id),
@@ -50,5 +50,3 @@ INSERT INTO registration values ('1','1','1','b2d7bb69-35b9-4b7d-8add-685223d518
 INSERT INTO registration values ('1','1','1','0fd7ee79-6358-47fd-af92-aa5d49808e77','2');
 --Above must fail
 INSERT INTO "counter"(competition_id, team_id, line_no, person_id) values ('1','2','1','0fd7ee79-6358-47fd-af92-aa5d49808e77');
-
-

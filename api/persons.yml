@@ -1,8 +1,14 @@
+swagger: '2.0'
+info:
+  title: Persons API
+  version: '1.0'
 paths:
   /persons/:
     get:
       summary: Get list of all persons
-      description: Retrieve a list of all persons including swimmers, organizers, and referees with their details.
+      description: Retrieve a list of all persons including swimmers, organizers, and referees with their details. Only accessible from localhost.
+      tags:
+        - Persons
       responses:
         200:
           description: A list of persons
@@ -12,8 +18,8 @@ paths:
               type: object
               properties:
                 person_id:
-                  type: integer
-                  description: Unique identifier for the person
+                  type: string
+                  description: Unique identifier for the person (UUID)
                 name:
                   type: string
                   description: First name of the person
@@ -22,19 +28,159 @@ paths:
                   description: Last name of the person
                 type_name:
                   type: string
-                  description: Type of person (e.g., swimmer, organizer)
+                  description: Type of person (e.g., swimmer, organizer, referee)
                 team_name:
                   type: string
                   description: Name of the team the person belongs to
         403:
           description: Access denied. Only allowed from localhost.
+
     post:
       summary: Add a new person
-      description: Insert a new person into the database.
+      description: Insert a new person into the database. Only accessible from localhost.
+      tags:
+        - Persons
       parameters:
         - in: body
           name: person
           description: Person data to insert
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - surname
+              - type_id
+              - team_id
+            properties:
+              name:
+                type: string
+                description: First name
+              surname:
+                type: string
+                description: Last name
+              type_id:
+                type: integer
+                description: Person type ID (1=swimmer, etc.)
+              team_id:
+                type: string
+                description: Team identifier
+      responses:
+        200:
+          description: Person added successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "ok"
+        400:
+          description: Bad request - no data provided
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                example: "no data"
+        403:
+          description: Access denied. Only allowed from localhost.
+
+    delete:
+      summary: Delete a person
+      description: Delete a person from the database. Only accessible from localhost.
+      tags:
+        - Persons
+      parameters:
+        - in: body
+          name: person
+          description: Person data to delete
+          required: true
+          schema:
+            type: object
+            required:
+              - person_id
+            properties:
+              person_id:
+                type: string
+                description: Unique identifier of the person to delete (UUID)
+      responses:
+        200:
+          description: Person deleted successfully
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "ok"
+        400:
+          description: Bad request - no data provided
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                example: "no data"
+        403:
+          description: Access denied. Only allowed from localhost.
+
+  /persons/{person_id}/:
+    get:
+      summary: Get details of a specific person
+      description: Retrieve detailed information about a specific person by their ID. Only accessible from localhost.
+      tags:
+        - Persons
+      parameters:
+        - in: path
+          name: person_id
+          description: Unique identifier of the person (UUID)
+          required: true
+          type: string
+      responses:
+        200:
+          description: Person details
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                person_id:
+                  type: string
+                  description: Unique identifier for the person (UUID)
+                name:
+                  type: string
+                  description: First name of the person
+                surname:
+                  type: string
+                  description: Last name of the person
+                type_name:
+                  type: string
+                  description: Type of person
+                team_name:
+                  type: string
+                  description: Name of the team
+        403:
+          description: Access denied. Only allowed from localhost.
+
+    patch:
+      summary: Update a person's information
+      description: Modify the information of an existing person. Only accessible from localhost.
+      tags:
+        - Persons
+      parameters:
+        - in: path
+          name: person_id
+          description: Unique identifier of the person (UUID)
+          required: true
+          type: string
+        - in: body
+          name: person
+          description: Updated person data
           required: true
           schema:
             type: object
@@ -45,25 +191,21 @@ paths:
               surname:
                 type: string
                 description: Last name
-              type:
+              type_id:
                 type: integer
                 description: Person type ID
-              team:
-                type: integer
-                description: Team ID
-            required:
-              - name
-              - surname
-              - type
-              - team
+              team_id:
+                type: string
+                description: Team identifier
       responses:
         200:
-          description: Person added successfully
+          description: Person updated successfully
           schema:
             type: object
             properties:
               status:
                 type: string
+                example: "ok"
         400:
           description: Bad request - no data provided
           schema:
@@ -71,27 +213,13 @@ paths:
             properties:
               status:
                 type: string
+                example: "failed"
               reason:
                 type: string
+                example: "no data"
         403:
           description: Access denied. Only allowed from localhost.
-    delete:
-      summary: Delete persons
-      description: Delete persons from the database. (Note that implementation may vary)
-      responses:
-        200:
-          description: Deletion successful
-          schema:
-            type: object
-            properties:
-              status:
-                type: string
-        403:
-          description: Access denied. Only allowed from localhost.
-        400:
-          description: Bad request
-          schema:
-            type: object
-            properties:
-              status:
-                type: string
+
+tags:
+  - name: Persons
+    description: Manage participants

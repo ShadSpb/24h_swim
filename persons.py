@@ -20,7 +20,8 @@ def db_all_persons():
         connection = sqlite3.connect(application_config.config.get("database_path"))
         connection.row_factory = functions.row_to_dict
         cursor = connection.cursor()
-        cursor.execute("SELECT A.person_id,A.name,A.surname,B.type_name,C.team_name FROM persons as A JOIN types as B ON A.type = B.type_id JOIN teams as C on A.team = C.team_id ORDER BY A.person_id DESC;")
+        cursor.execute("SELECT A.person_id,A.name,A.surname,B.type_name,C.team_name FROM persons as A JOIN types as B ON A.type_id = B.type_id JOIN teams as C on A.team = C.team_id ORDER BY A.person_id DESC;")
+        connection.close()
         return Response(json.dumps(cursor.fetchall()), mimetype='application/json', status=200)
         
     if request.method == 'POST':
@@ -29,10 +30,11 @@ def db_all_persons():
         data = json.loads(request.get_data().decode())
         connection = sqlite3.connect(application_config.config.get("database_path"))
         cursor = connection.cursor()
-        cursor.execute("INSERT INTO persons (person_id, name, surname, type, team) VALUES (?,?,?,?,?);",
-                       [str(uuid.uuid4()), data.get("name"), data.get("surname"), data.get("type"), data.get("team")])
+        cursor.execute("INSERT INTO persons (person_id, name, surname, type_id, team_id) VALUES (?,?,?,?,?);",
+                       [str(uuid.uuid4()), data.get("name"), data.get("surname"), data.get("type_id"), data.get("team_id")])
         connection.commit()
-        return Response(json.dumps({"status":"ok"}), mimetype='appliction/json', status=200)
+        connection.close()
+        return Response(json.dumps({"status":"ok"}), mimetype='application/json', status=200)
         
     if request.method == 'DELETE':
         if request.content_length == 0:
@@ -42,9 +44,10 @@ def db_all_persons():
         cursor = connection.cursor()
         cursor.execute("DELETE FROM persons WHERE person_id = ?;", [data.get("person_id")])
         connection.commit()
+        connection.close()
         return Response(json.dumps({"status":"ok"}), mimetype='application/json', status=200)
     
-    return Response(json.dumps({"status":"failed", "reason":"method not allowed"}), mimetype='text/json', status=405)
+    return Response(json.dumps({"status":"failed", "reason":"request not supported"}), mimetype='text/json', status=405)
         
 @persons.route("/persons/<ident>/", methods=['GET', 'MODIFY'])
 def db_single_person(ident):
@@ -58,6 +61,7 @@ def db_single_person(ident):
         connection.row_factory = functions.row_to_dict
         cursor = connection.cursor()
         cursor.execute("SELECT A.person_id,A.name,A.surname,B.type_name,C.team_name FROM persons as A JOIN types as B ON A.type = B.type_id JOIN teams as C on A.team = C.team_id WHERE A.person_id = ? ORDER BY A.person_id DESC;",[(ident)])
+        connection.close()
         return Response(json.dumps(cursor.fetchall()), mimetype='application/json', status=200)
     
     if request.method == 'MODIFY':
@@ -66,9 +70,10 @@ def db_single_person(ident):
         data = json.loads(request.get_data().decode())
         connection = sqlite3.connect(application_config.config.get("database_path"))
         cursor = connection.cursor()
-        cursor.execute("UPDATE persons SET name = ?, surname = ?, type = ?, team = ? WHERE person_id = ?;",
-                       [data.get("name"), data.get("surname"), data.get("type"), data.get("team"), ident])
+        cursor.execute("UPDATE persons SET name = ?, surname = ?, type_id = ?, team_id = ? WHERE person_id = ?;",
+                       [data.get("name"), data.get("surname"), data.get("type_id"), data.get("team_id"), ident])
         connection.commit()
+        connection.close()
         return Response(json.dumps({"status:ok"}), mimetype='application/json', status=200)
     
-    return Response(json.dumps({"status":"failed", "reason":"method not supported"}), mimetype='application/json', status=400)
+    return Response(json.dumps({"status":"failed", "reason":"request not supported"}), mimetype='application/json', status=400)

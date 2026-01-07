@@ -1,0 +1,73 @@
+swagger: '2.0'
+info:
+  title: Counter API
+  version: '1.0'
+paths:
+  /counter/:
+    post:
+      summary: Log a swimmer completing one cycle
+      description: Log that a swimmer has completed one cycle of the distance. The swimmer must be registered and in active state for the competition.
+      tags:
+        - Counter
+      parameters:
+        - in: body
+          name: counter
+          description: Counter data
+          required: true
+          schema:
+            type: object
+            required:
+              - swimmer_id
+              - competition_id
+            properties:
+              swimmer_id:
+                type: string
+                description: Unique identifier of the swimmer (UUID)
+              competition_id:
+                type: integer
+                description: Unique identifier of the competition
+      responses:
+        200:
+          description: Cycle successfully counted
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+        400:
+          description: Bad request or counter forbidden
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                enum:
+                  - "no data"
+                  - "invalid json"
+                  - "invalid data"
+                  - "counter forbidden"
+                  - "database integrity error"
+              error:
+                type: string
+                description: Error details if applicable
+        403:
+          description: Access denied. Only allowed from localhost.
+        500:
+          description: Internal server error - database error
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                example: "database error"
+
+tags:
+  - name: Counter
+    description: Track completed laps

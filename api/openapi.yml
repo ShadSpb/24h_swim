@@ -1,0 +1,419 @@
+swagger: '2.0'
+info:
+  title: 24h Swimming Event API
+  description: Backend API for managing 24-hour swimming events including participant registration, lane assignment, and lap counting.
+  version: '1.0'
+host: localhost:5000
+basePath: /
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  /test:
+    get:
+      summary: Health check endpoint
+      description: Test endpoint to verify the API is running.
+      tags:
+        - System
+      responses:
+        200:
+          description: API is operational
+          schema:
+            type: string
+            example: "ok"
+
+  /persons/:
+    get:
+      summary: Get list of all persons
+      description: Retrieve a list of all participants (swimmers, organizers, referees) with their team assignments and roles. Only accessible from localhost.
+      tags:
+        - Persons
+      responses:
+        200:
+          description: A list of persons
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                person_id:
+                  type: string
+                  description: Unique identifier for the person (UUID)
+                name:
+                  type: string
+                  description: First name of the person
+                surname:
+                  type: string
+                  description: Last name of the person
+                type_name:
+                  type: string
+                  description: Type of person (e.g., swimmer, organizer, referee)
+                team_name:
+                  type: string
+                  description: Name of the team the person belongs to
+        403:
+          description: Access denied. Only allowed from localhost.
+
+    post:
+      summary: Add a new person
+      description: Insert a new person into the database. Only accessible from localhost.
+      tags:
+        - Persons
+      parameters:
+        - in: body
+          name: person
+          description: Person data to insert
+          required: true
+          schema:
+            type: object
+            required:
+              - name
+              - surname
+              - type_id
+              - team_id
+            properties:
+              name:
+                type: string
+                description: First name
+              surname:
+                type: string
+                description: Last name
+              type_id:
+                type: integer
+                description: Person type ID (1=swimmer, etc.)
+              team_id:
+                type: string
+                description: Team identifier
+      responses:
+        200:
+          description: Person successfully added
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "ok"
+        400:
+          description: Bad request - no data provided
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                example: "no data"
+        403:
+          description: Access denied. Only allowed from localhost.
+
+    delete:
+      summary: Delete a person
+      description: Remove a person from the database. Only accessible from localhost.
+      tags:
+        - Persons
+      parameters:
+        - in: body
+          name: person
+          description: Person data to delete
+          required: true
+          schema:
+            type: object
+            required:
+              - person_id
+            properties:
+              person_id:
+                type: string
+                description: Unique identifier of the person to delete
+      responses:
+        200:
+          description: Person successfully deleted
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "ok"
+        400:
+          description: Bad request - no data provided
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                example: "no data"
+        403:
+          description: Access denied. Only allowed from localhost.
+
+  /persons/{person_id}/:
+    get:
+      summary: Get details of a specific person
+      description: Retrieve detailed information about a specific person by their ID. Only accessible from localhost.
+      tags:
+        - Persons
+      parameters:
+        - in: path
+          name: person_id
+          description: Unique identifier of the person
+          required: true
+          type: string
+      responses:
+        200:
+          description: Person details
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                person_id:
+                  type: string
+                  description: Unique identifier for the person (UUID)
+                name:
+                  type: string
+                  description: First name of the person
+                surname:
+                  type: string
+                  description: Last name of the person
+                type_name:
+                  type: string
+                  description: Type of person
+                team_name:
+                  type: string
+                  description: Name of the team
+        403:
+          description: Access denied. Only allowed from localhost.
+
+  /register/:
+    post:
+      summary: Register a swimmer for a competition
+      description: Register a swimmer for a specific competition and assign them to a lane number. Only one swimmer from a team can be registered simultaneously. Only accessible from localhost.
+      tags:
+        - Registration
+      parameters:
+        - in: body
+          name: registration
+          description: Registration data
+          required: true
+          schema:
+            type: object
+            required:
+              - swimmer_id
+              - line_no
+              - competition_id
+            properties:
+              swimmer_id:
+                type: string
+                description: Unique identifier of the swimmer (UUID)
+              line_no:
+                type: integer
+                description: Lane number for the swimmer
+              competition_id:
+                type: integer
+                description: Unique identifier of the competition
+      responses:
+        200:
+          description: Swimmer successfully registered
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "ok"
+        400:
+          description: Bad request - invalid data or registration forbidden
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                enum:
+                  - "no data"
+                  - "invalid json"
+                  - "invalid data"
+                  - "registration forbidden"
+                  - "integrity error"
+        403:
+          description: Access denied. Only allowed from localhost.
+        500:
+          description: Internal server error - database error
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                example: "database error"
+
+  /unregister/:
+    post:
+      summary: Unregister a swimmer from a competition
+      description: Unregister a swimmer from a specific competition by changing their registration state to inactive. Only accessible from localhost.
+      tags:
+        - Registration
+      parameters:
+        - in: body
+          name: unregistration
+          description: Unregistration data
+          required: true
+          schema:
+            type: object
+            required:
+              - swimmer_id
+              - competition_id
+            properties:
+              swimmer_id:
+                type: string
+                description: Unique identifier of the swimmer (UUID)
+              competition_id:
+                type: integer
+                description: Unique identifier of the competition
+      responses:
+        200:
+          description: Swimmer successfully unregistered
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "ok"
+        400:
+          description: Bad request - invalid data
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                enum:
+                  - "no data"
+                  - "invalid json"
+                  - "invalid data"
+        403:
+          description: Access denied. Only allowed from localhost.
+        500:
+          description: Internal server error - database error
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                example: "database error"
+
+  /counter/:
+    post:
+      summary: Log a swimmer completing one cycle
+      description: Log that a swimmer has completed one lap/cycle of the distance. The swimmer must be registered and in active state for the competition. Only accessible from localhost.
+      tags:
+        - Counter
+      parameters:
+        - in: body
+          name: counter
+          description: Counter data
+          required: true
+          schema:
+            type: object
+            required:
+              - swimmer_id
+              - competition_id
+            properties:
+              swimmer_id:
+                type: string
+                description: Unique identifier of the swimmer (UUID)
+              competition_id:
+                type: integer
+                description: Unique identifier of the competition
+      responses:
+        200:
+          description: Cycle successfully counted
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "success"
+        400:
+          description: Bad request or counter forbidden
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                enum:
+                  - "no data"
+                  - "invalid json"
+                  - "invalid data"
+                  - "counter forbidden"
+                  - "database integrity error"
+        403:
+          description: Access denied. Only allowed from localhost.
+        500:
+          description: Internal server error - database error
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                example: "failed"
+              reason:
+                type: string
+                example: "database error"
+
+definitions:
+  Person:
+    type: object
+    properties:
+      person_id:
+        type: string
+        description: Unique identifier (UUID)
+      name:
+        type: string
+      surname:
+        type: string
+      type_name:
+        type: string
+      team_name:
+        type: string
+
+  ErrorResponse:
+    type: object
+    properties:
+      status:
+        type: string
+        enum:
+          - "ok"
+          - "failed"
+          - "success"
+      reason:
+        type: string
+      error:
+        type: string
+
+tags:
+  - name: System
+    description: System health and status endpoints
+  - name: Persons
+    description: Manage participants in the event
+  - name: Registration
+    description: Manage swimmer registration for competitions
+  - name: Counter
+    description: Track completed laps/cycles
