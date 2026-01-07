@@ -1,8 +1,8 @@
-swagger: '2.0'
+swagger: "2.0"
 info:
   title: Unregister API
   description: Unregister swimmers from competitions
-  version: '1.0'
+  version: "1.0"
 host: localhost:5000
 basePath: /
 schemes:

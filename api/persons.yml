@@ -1,8 +1,8 @@
-swagger: '2.0'
+swagger: "2.0"
 info:
   title: Persons API
   description: Manage participants (swimmers, organizers, referees) in the 24h swimming event
-  version: '1.0'
+  version: "1.0"
 host: localhost:5000
 basePath: /
 schemes:
