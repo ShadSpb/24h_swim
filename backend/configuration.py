@@ -12,12 +12,15 @@ class Configuration:
     def __read_config(self) -> None:
         '''Reads configuration of the backend and apply it in application'''
         mandatory_config_parameters = ['database_file','database_type', 'logging_type', 'logging_method']
-
-        with open('config.cfg', mode = "rt", encoding = "utf8") as configuration_file:
-            for line in configuration_file.readlines():
-                if re.match(r'^(?P<Parameter>(?P<NAME>\w{1,})\s{0,}?=\s{0,}?(?P<VALUE>(\w{1,},?|.?){1,});)$', line):
-                    values = re.search(r'^(?P<Parameter>(?P<NAME>\w{1,})\s{0,}?=\s{0,}?(?P<VALUE>(\w{1,},?|.?){1,});)$', line)
-                    self.config[values.group(2).lower()] = values.group(3).lower().lstrip()
+        try:
+            with open('backend/config.cfg', mode = "rt", encoding = "utf8") as configuration_file:
+                for line in configuration_file.readlines():
+                    if re.match(r'^(?P<Parameter>(?P<NAME>\w{1,})\s{0,}?=\s{0,}?(?P<VALUE>(\w{1,},?|.?){1,});)$', line):
+                        values = re.search(r'^(?P<Parameter>(?P<NAME>\w{1,})\s{0,}?=\s{0,}?(?P<VALUE>(\w{1,},?|.?){1,});)$', line)
+                        self.config[values.group(2).lower()] = values.group(3).lower().lstrip()
+        except FileNotFoundError:
+            logging.error("Configuration fil config.cfg not found. Exiting application.")
+            sys.exit(1)
 
         for parameter in mandatory_config_parameters:
             try:
