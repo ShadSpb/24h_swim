@@ -1,5 +1,6 @@
 import sqlite3
 import logging
+import uuid
 
 def row_to_dict(cursor: sqlite3.Cursor, row: sqlite3.Row) -> dict:
     data = {}
@@ -61,3 +62,40 @@ def swimmer_allowed(swimmer_id: str, line_no: int, competition_id: int, team_id:
     #check 3 register swimmer
     connection.close()
     return True
+
+def create_person(name: str, surname: str, type_id: int, team_id: str) -> str:
+    '''Create a new person in the database and return person_id'''
+    from app import application_config
+    connection = sqlite3.connect(application_config.config.get("database_path"))
+    cursor = connection.cursor()
+    person_id = str(uuid.uuid4())
+    cursor.execute("INSERT INTO persons (person_id, name, surname, type_id, team_id) VALUES (?,?,?,?,?);",
+                   [person_id, name, surname, type_id, team_id])
+    connection.commit()
+    connection.close()
+    return person_id
+
+def create_team(team_name: str) -> int:
+    '''Create a new team in the database and return team_id'''
+    from app import application_config
+    connection = sqlite3.connect(application_config.config.get("database_path"))
+    cursor = connection.cursor()
+    cursor.execute("SELECT team_id FROM teams WHERE team_name = ?;", [team_name])
+    result = cursor.fetchone()
+    if result is not None:
+        connection.close()
+        logging.info("Team %s already exists with team_id %s.", team_name, result[0])
+        return result[0]
+    else:
+        logging.info("Creating new team %s.", team_name)
+        cursor.execute("SELECT max(team_id) FROM teams;")
+        max_team_id = cursor.fetchone()[0]
+        if max_team_id is None:
+            team_id = 1
+        else:
+            team_id = max_team_id + 1
+        cursor.execute("INSERT INTO teams (team_name) VALUES (?,?);",
+                    [team_id, team_name])
+        connection.commit()
+        connection.close()
+        return team_id

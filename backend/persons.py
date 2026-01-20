@@ -28,13 +28,8 @@ def db_all_persons():
         if request.content_length == 0:
             return Response(json.dumps({"status":"failed", "reason":"no data"}), mimetype='application/json', status=400)
         data = json.loads(request.get_data().decode())
-        connection = sqlite3.connect(application_config.config.get("database_path"))
-        cursor = connection.cursor()
-        cursor.execute("INSERT INTO persons (person_id, name, surname, type_id, team_id) VALUES (?,?,?,?,?);",
-                       [str(uuid.uuid4()), data.get("name"), data.get("surname"), data.get("type_id"), data.get("team_id")])
-        connection.commit()
-        connection.close()
-        return Response(json.dumps({"status":"ok"}), mimetype='application/json', status=200)
+        person_id = functions.create_person(data.get("name"), data.get("surname"), data.get("type_id"), data.get("team_id"))
+        return Response(json.dumps({"person_id":person_id}), mimetype='application/json', status=200)
         
     if request.method == 'DELETE':
         if request.content_length == 0:
