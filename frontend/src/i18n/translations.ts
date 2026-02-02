@@ -1,0 +1,805 @@
+// Internationalization translations for SwimTrack 24
+// Primary language: German (de), Secondary: English (en)
+
+export type Language = 'de' | 'en';
+
+export const translations = {
+  de: {
+    // Common
+    common: {
+      home: 'Startseite',
+      about: 'Über uns',
+      rules: 'Regeln',
+      login: 'Anmelden',
+      logout: 'Abmelden',
+      register: 'Registrieren',
+      save: 'Speichern',
+      cancel: 'Abbrechen',
+      delete: 'Löschen',
+      edit: 'Bearbeiten',
+      add: 'Hinzufügen',
+      create: 'Erstellen',
+      update: 'Aktualisieren',
+      close: 'Schließen',
+      confirm: 'Bestätigen',
+      back: 'Zurück',
+      next: 'Weiter',
+      loading: 'Laden...',
+      error: 'Fehler',
+      success: 'Erfolg',
+      warning: 'Warnung',
+      info: 'Info',
+      yes: 'Ja',
+      no: 'Nein',
+      or: 'oder',
+      and: 'und',
+      search: 'Suchen',
+      filter: 'Filtern',
+      sort: 'Sortieren',
+      actions: 'Aktionen',
+      status: 'Status',
+      name: 'Name',
+      email: 'E-Mail',
+      password: 'Passwort',
+      dashboard: 'Dashboard',
+      settings: 'Einstellungen',
+      liveMonitor: 'Live-Monitor',
+      privacy: 'Datenschutz',
+    },
+
+    // Landing page
+    landing: {
+      heroTitle: 'Verfolgen Sie jede Bahn Ihres',
+      heroTitleHighlight: '24-Stunden',
+      heroTitleEnd: 'Schwimm-Events',
+      heroSubtitle: 'Echtzeit-Bahnenzählung, Teamstatistiken und Live-Ranglisten für Ausdauerschwimm-Wettbewerbe. Entwickelt für Schiedsrichter, geliebt von Organisatoren.',
+      getStarted: 'Jetzt starten',
+      learnMore: 'Mehr erfahren',
+      professionalTracking: 'Professionelle Schwimmwettbewerb-Verfolgung',
+      
+      // Features
+      featuresTitle: 'Alles was Sie brauchen',
+      featuresSubtitle: 'Komplettes Toolkit zur Verwaltung von 24-Stunden-Schwimmwettbewerben von Anfang bis Ende.',
+      realTimeTracking: 'Echtzeit-Verfolgung',
+      realTimeTrackingDesc: 'Zählen Sie Bahnen in Echtzeit mit sofortigen Updates für alle sichtbar.',
+      teamManagement: 'Team-Verwaltung',
+      teamManagementDesc: 'Organisieren Sie Teams, weisen Sie Schwimmer Bahnen zu und verfolgen Sie individuelle Leistungen.',
+      refereeControls: 'Schiedsrichter-Steuerung',
+      refereeControlsDesc: 'Einfache Oberfläche für Schiedsrichter zur Registrierung und Zählung von Schwimmern auf ihrer Bahn.',
+      liveLeaderboard: 'Live-Rangliste',
+      liveLeaderboardDesc: 'Dynamische Ranglisten werden in Echtzeit aktualisiert, wenn Teams mehr Bahnen absolvieren.',
+      statistics: 'Statistiken',
+      statisticsDesc: 'Verfolgen Sie Bahnen pro Stunde, schnellste Zeiten, Early Bird und Late Bird Kategorien.',
+      multiLaneSupport: 'Mehrbahn-Unterstützung',
+      multiLaneSupportDesc: 'Verwalten Sie Wettbewerbe mit mehreren Schwimmbahnen gleichzeitig.',
+
+      // How it works
+      howItWorksTitle: 'So funktioniert es',
+      howItWorksSubtitle: 'Einfacher Arbeitsablauf für Organisatoren, Schiedsrichter und Zuschauer.',
+      step1Title: 'Wettbewerb einrichten',
+      step1Desc: 'Organisator erstellt das Event, fügt Teams, Schwimmer hinzu und weist Schiedsrichter den Bahnen zu.',
+      step2Title: 'Bahnen zählen',
+      step2Desc: 'Schiedsrichter registrieren sich auf ihrer Bahn und tippen, um jedes Mal zu zählen, wenn ein Schwimmer vorbeikommt.',
+      step3Title: 'Live verfolgen',
+      step3Desc: 'Jeder kann die Live-Rangliste mit Echtzeit-Statistiken und Countdown ansehen.',
+
+      // CTA
+      ctaTitle: 'Bereit für Ihren nächsten Wettbewerb?',
+      ctaSubtitle: 'Erstellen Sie Ihren ersten Wettbewerb in Minuten. Keine Kreditkarte erforderlich.',
+      startFree: 'Kostenlos starten',
+    },
+
+    // About page
+    about: {
+      title: 'Über SwimTrack 24',
+      socialProject: 'Soziales Projekt',
+      socialProjectDesc: 'Dies ist ein soziales Projekt und es besteht keine Verpflichtung zur Zahlung für die Nutzung des Dienstes. Der Ersteller bittet jedoch darum, den Dienst mit Respekt zu nutzen.',
+      noWarranty: 'Keine Garantie',
+      noWarrantyDesc: 'Es gibt keine Kontrolle über die Konsistenz der Daten. Der gesamte Dienst wird ohne jegliche Garantie oder Verantwortung "wie besehen" bereitgestellt.',
+      asIs: 'Der Dienst wird "wie besehen" bereitgestellt, ohne jegliche ausdrückliche oder stillschweigende Gewährleistung.',
+    },
+
+    // Privacy page (Datenschutz)
+    privacy: {
+      title: 'Datenschutzerklärung',
+      lastUpdated: 'Zuletzt aktualisiert',
+      intro: 'Der Schutz Ihrer persönlichen Daten ist uns ein wichtiges Anliegen. Diese Datenschutzerklärung informiert Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten.',
+      
+      responsibleParty: 'Verantwortliche Stelle',
+      responsiblePartyDesc: 'Verantwortlich für die Datenverarbeitung auf dieser Website ist der Betreiber.',
+      
+      dataCollection: 'Datenerfassung',
+      dataCollectionDesc: 'Wir erheben und speichern automatisch Informationen in Server-Log-Dateien, die Ihr Browser automatisch an uns übermittelt.',
+      
+      cookies: 'Cookies',
+      cookiesDesc: 'Diese Website verwendet Cookies. Dabei handelt es sich um kleine Textdateien, die auf Ihrem Endgerät gespeichert werden.',
+      
+      dataProtectionRights: 'Ihre Rechte',
+      dataProtectionRightsDesc: 'Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung Ihrer personenbezogenen Daten.',
+      
+      contact: 'Kontakt',
+      contactDesc: 'Bei Fragen zur Erhebung, Verarbeitung oder Nutzung Ihrer personenbezogenen Daten können Sie sich jederzeit an uns wenden.',
+    },
+
+    // FAQ page
+    faq: {
+      title: 'Häufig gestellte Fragen',
+      subtitle: 'Antworten auf die häufigsten Fragen zu 24-Stunden-Schwimmwettbewerben',
+      frequentQuestions: 'Häufige Fragen',
+      askQuestion: 'Frage stellen',
+      yourEmail: 'Ihre E-Mail (optional)',
+      yourQuestion: 'Ihre Frage',
+      emailPlaceholder: 'ihre@email.de',
+      questionPlaceholder: 'Beschreiben Sie Ihre Frage hier...',
+      submit: 'Frage absenden',
+      questionSubmitted: 'Ihre Frage wurde erfolgreich gesendet!',
+      
+      // Q&A - these are templates to be adjusted manually
+      q1: 'Wie funktioniert die Bahnenzählung?',
+      a1: 'Schiedsrichter registrieren sich auf ihrer zugewiesenen Bahn und tippen auf den Team-Button, wenn ein Schwimmer vorbeikommt. Das System zählt automatisch und verhindert doppelte Zählungen innerhalb des konfigurierten Zeitraums.',
+      q2: 'Können mehrere Teams auf derselben Bahn schwimmen?',
+      a2: 'Ja, mehrere Teams können derselben Bahn zugewiesen werden. Jedoch kann von jedem Team nur ein Schwimmer gleichzeitig im Wasser sein. Teams auf derselben Bahn müssen unterschiedliche Farben haben.',
+      q3: 'Wie werden Schwimmer unter 12 Jahren behandelt?',
+      a3: 'Schwimmer unter 12 Jahren benötigen registrierte Kontaktdaten der Eltern und müssen während des Schwimmens von einem Elternteil begleitet werden, besonders während der Nachtzeiten (22:00-04:00).',
+      q4: 'Was passiert, wenn ich versehentlich doppelt tippe?',
+      a4: 'Das System verhindert automatisch doppelte Zählungen innerhalb des vom Organisator konfigurierten Timeout-Zeitraums. Schnelle aufeinanderfolgende Taps werden ignoriert.',
+      q5: 'Kann ein Schiedsrichter mehrere Bahnen kontrollieren?',
+      a5: 'Ja, in Zeiten mit geringer Aktivität (z.B. 3 Uhr nachts) kann ein Schiedsrichter mehrere Bahnen kontrollieren, wenn nur wenige Schwimmer aktiv sind.',
+      q6: 'Wie funktionieren die Early Bird und Late Bird Kategorien?',
+      a6: 'Early Bird zählt Bahnen zwischen 05:00 und 06:00 Uhr. Late Bird zählt Bahnen zwischen 00:00 und 01:00 Uhr. Diese Kategorien belohnen Schwimmer, die in anspruchsvollen Zeiten aktiv sind.',
+      q7: 'Kann ich den Wettbewerb früher beenden?',
+      a7: 'Ja, Organisatoren können den Wettbewerb vorzeitig mit der Force-Stop-Funktion beenden. Dies erfordert eine doppelte Bestätigung durch Eingabe der E-Mail-Adresse, des Wettbewerbsnamens und der Bestätigung.',
+      q8: 'Wie ändere ich die Bahnzuweisung eines Teams?',
+      a8: 'Bahnänderungen können nur vom Organisator vorgenommen werden. Kontaktieren Sie Ihren Wettbewerbsorganisator, um Änderungen an den Bahnzuweisungen anzufordern.',
+      q9: 'Was ist der Doppelzähl-Timeout?',
+      a9: 'Der Doppelzähl-Timeout ist ein vom Organisator konfigurierter Zeitraum, der verhindert, dass versehentliche Mehrfachtaps gezählt werden. Dies wird pro Wettbewerb festgelegt.',
+      q10: 'Wie kann ich den Live-Monitor teilen?',
+      a10: 'Jeder Wettbewerb hat eine einzigartige Monitor-URL, die mit Zuschauern geteilt werden kann. Anonymer Zugriff ist verfügbar - keine Anmeldung erforderlich zum Ansehen.',
+    },
+
+    // Rules page (kept for backwards compatibility)
+    rules: {
+      title: 'Wettbewerbsregeln',
+      subtitle: 'Offizielle Regeln und Richtlinien für 24-Stunden-Schwimmwettbewerbe',
+      generalRules: 'Allgemeine Regeln',
+      swimmerRules: 'Schwimmer-Regeln',
+      refereeRules: 'Schiedsrichter-Regeln',
+      teamRules: 'Team-Regeln',
+    },
+
+    // Auth
+    auth: {
+      loginTitle: 'Willkommen zurück',
+      loginSubtitle: 'Melden Sie sich bei Ihrem Konto an',
+      registerTitle: 'Konto erstellen',
+      registerSubtitle: 'Registrieren Sie sich als Organisator',
+      emailPlaceholder: 'ihre@email.de',
+      passwordPlaceholder: 'Ihr Passwort',
+      namePlaceholder: 'Ihr Name',
+      loginButton: 'Anmelden',
+      registerButton: 'Registrieren',
+      noAccount: 'Noch kein Konto?',
+      hasAccount: 'Bereits ein Konto?',
+      invalidCredentials: 'Ungültige Anmeldedaten',
+      emailExists: 'Diese E-Mail existiert bereits',
+      organizer: 'Organisator',
+      referee: 'Schiedsrichter',
+      selectRole: 'Rolle auswählen',
+    },
+
+    // Competition
+    competition: {
+      title: 'Wettbewerb',
+      competitions: 'Wettbewerbe',
+      createCompetition: 'Wettbewerb erstellen',
+      editCompetition: 'Wettbewerb bearbeiten',
+      deleteCompetition: 'Wettbewerb löschen',
+      competitionName: 'Wettbewerbsname',
+      description: 'Beschreibung',
+      date: 'Datum',
+      location: 'Ort',
+      startTime: 'Startzeit',
+      endTime: 'Endzeit',
+      numberOfLanes: 'Anzahl der Bahnen',
+      laneLength: 'Bahnlänge (m)',
+      status: {
+        upcoming: 'Geplant',
+        active: 'Aktiv',
+        paused: 'Pausiert',
+        completed: 'Abgeschlossen',
+        stopped: 'Gestoppt',
+      },
+      noCompetitions: 'Noch keine Wettbewerbe',
+      selectCompetition: 'Wettbewerb auswählen',
+      competitionDetails: 'Wettbewerbsdetails',
+
+      // Controls
+      controls: 'Steuerung',
+      startCompetition: 'Wettbewerb starten',
+      pauseCompetition: 'Wettbewerb pausieren',
+      resumeCompetition: 'Wettbewerb fortsetzen',
+      finishCompetition: 'Wettbewerb beenden',
+      forceStop: 'Wettbewerb abbrechen',
+      autoStart: 'Automatischer Start',
+      autoFinish: 'Automatisches Ende',
+      manualControl: 'Manuelle Steuerung',
+      
+      // Force stop confirmation
+      forceStopTitle: 'Wettbewerb abbrechen?',
+      forceStopWarning: 'Diese Aktion kann nicht rückgängig gemacht werden. Alle aktiven Schwimmer werden beendet.',
+      confirmEmail: 'E-Mail bestätigen',
+      confirmName: 'Wettbewerbsname bestätigen',
+      confirmCheckbox: 'Ich bestätige, dass der Wettbewerb jetzt beendet werden soll',
+    },
+
+    // Teams
+    team: {
+      teams: 'Teams',
+      addTeam: 'Team hinzufügen',
+      editTeam: 'Team bearbeiten',
+      teamName: 'Teamname',
+      teamColor: 'Teamfarbe',
+      assignedLane: 'Zugewiesene Bahn',
+      noTeams: 'Noch keine Teams',
+      colorConflict: 'Zwei Teams auf derselben Bahn können nicht dieselbe Farbe haben',
+    },
+
+    // Swimmers
+    swimmer: {
+      swimmers: 'Schwimmer',
+      addSwimmer: 'Schwimmer hinzufügen',
+      swimmerName: 'Schwimmername',
+      underTwelve: 'Unter 12 Jahre alt',
+      parentContact: 'Elternkontakt',
+      parentName: 'Name des Elternteils',
+      parentPresent: 'Elternteil anwesend',
+      parentRequired: 'Für Schwimmer unter 12 Jahren ist ein Elternkontakt erforderlich',
+      nightTimeRestriction: 'Schwimmer unter 12 Jahren benötigen zwischen 22:00 und 04:00 Uhr einen anwesenden Elternteil',
+      noSwimmers: 'Noch keine Schwimmer',
+      registerSwimmer: 'Schwimmer registrieren',
+      unregisterSwimmer: 'Schwimmer abmelden',
+      activeSwimmer: 'Aktiver Schwimmer',
+      noActiveSwimmer: 'Kein aktiver Schwimmer',
+    },
+
+    // Referees
+    referee: {
+      referees: 'Schiedsrichter',
+      addReferee: 'Schiedsrichter hinzufügen',
+      refereeName: 'Schiedsrichtername',
+      refereeEmail: 'E-Mail (optional)',
+      generatedId: 'Generierte ID',
+      generatedPassword: 'Generiertes Passwort',
+      noReferees: 'Noch keine Schiedsrichter',
+      registerToLane: 'Auf Bahn registrieren',
+      unregisterFromLane: 'Von Bahn abmelden',
+      forceUnregister: 'Abmeldung erzwingen',
+      resetPassword: 'Passwort zurücksetzen',
+      passwordReset: 'Passwort wurde zurückgesetzt',
+      newPassword: 'Neues Passwort',
+      assignedCompetitions: 'Zugewiesene Wettbewerbe',
+      lane: 'Bahn',
+      registeredAt: 'Registriert um',
+    },
+
+    // Lap counting
+    lap: {
+      laps: 'Bahnen',
+      lapCount: 'Bahnenzählung',
+      countLap: 'Bahn zählen',
+      tooSoon: 'Zu schnell! Warten Sie noch',
+      seconds: 'Sekunden',
+      lastCount: 'Letzte Zählung',
+      totalLaps: 'Gesamtbahnen',
+      lapsPerHour: 'Bahnen pro Stunde',
+      fastestLap: 'Schnellste Bahn',
+      distance: 'Distanz',
+    },
+
+    // Monitor
+    monitor: {
+      title: 'Live-Monitor',
+      leaderboard: 'Rangliste',
+      countdown: 'Countdown',
+      timeRemaining: 'Verbleibende Zeit',
+      competitionEnded: 'Wettbewerb beendet',
+      competitionNotStarted: 'Wettbewerb noch nicht gestartet',
+      earlyBird: 'Early Bird (05:00-06:00)',
+      lateBird: 'Late Bird (00:00-01:00)',
+      rank: 'Rang',
+      noData: 'Keine Daten verfügbar',
+    },
+
+    // Admin
+    admin: {
+      title: 'Administration',
+      smtpConfig: 'SMTP-Konfiguration',
+      smtpHost: 'SMTP-Host',
+      smtpPort: 'SMTP-Port',
+      smtpUser: 'SMTP-Benutzer',
+      smtpPassword: 'SMTP-Passwort',
+      smtpFrom: 'Absender-E-Mail',
+      testEmail: 'Test-E-Mail senden',
+      
+      authType: 'Authentifizierungstyp',
+      authBuiltIn: 'Integriert',
+      authExternal: 'Extern (API)',
+      backendUrl: 'Backend-URL',
+      
+      emailNotifications: 'E-Mail-Benachrichtigungen',
+      emailOrganizerRegistration: 'Organisator-Registrierung',
+      emailPasswordReset: 'Passwort-Zurücksetzung',
+      emailCompetitionResult: 'Wettbewerbsergebnis',
+      emailFaqFeedback: 'FAQ-Feedback/Fragen',
+      
+      activeUsers: 'Aktive Benutzer',
+      organizersOnline: 'Organisatoren online',
+      refereesOnline: 'Schiedsrichter online',
+      
+      competitionStats: 'Wettbewerbsstatistiken',
+      plannedCompetitions: 'Geplante Wettbewerbe',
+      completedCompetitions: 'Abgeschlossene Wettbewerbe',
+      
+      maintenance: 'Wartungsmodus',
+      enableMaintenance: 'Wartungsmodus aktivieren',
+      maintenanceMessage: 'Die Website befindet sich derzeit in Wartung. Bitte versuchen Sie es später erneut.',
+      
+      changePassword: 'Passwort ändern',
+      currentPassword: 'Aktuelles Passwort',
+      newPassword: 'Neues Passwort',
+      confirmPassword: 'Passwort bestätigen',
+    },
+
+    // Validation
+    validation: {
+      required: 'Dieses Feld ist erforderlich',
+      invalidEmail: 'Ungültige E-Mail-Adresse',
+      minLength: 'Mindestens {min} Zeichen erforderlich',
+      maxLength: 'Maximal {max} Zeichen erlaubt',
+      passwordMismatch: 'Passwörter stimmen nicht überein',
+      futureDate: 'Datum muss in der Zukunft liegen',
+    },
+
+    // Toasts/Notifications
+    toast: {
+      competitionCreated: 'Wettbewerb erstellt',
+      competitionUpdated: 'Wettbewerb aktualisiert',
+      competitionDeleted: 'Wettbewerb gelöscht',
+      competitionStarted: 'Wettbewerb gestartet',
+      competitionPaused: 'Wettbewerb pausiert',
+      competitionResumed: 'Wettbewerb fortgesetzt',
+      competitionFinished: 'Wettbewerb beendet',
+      competitionStopped: 'Wettbewerb abgebrochen',
+      teamCreated: 'Team erstellt',
+      teamUpdated: 'Team aktualisiert',
+      teamDeleted: 'Team gelöscht',
+      swimmerAdded: 'Schwimmer hinzugefügt',
+      swimmerRemoved: 'Schwimmer entfernt',
+      refereeAdded: 'Schiedsrichter hinzugefügt',
+      refereeRemoved: 'Schiedsrichter entfernt',
+      registeredToLane: 'Auf Bahn registriert',
+      unregisteredFromLane: 'Von Bahn abgemeldet',
+      lapCounted: 'Bahn gezählt',
+      settingsSaved: 'Einstellungen gespeichert',
+      passwordChanged: 'Passwort geändert',
+      emailSent: 'E-Mail gesendet',
+    },
+
+    // Footer
+    footer: {
+      navigation: 'Navigation',
+      access: 'Zugang',
+      forOrganizers: 'Für Organisatoren',
+    },
+  },
+
+  en: {
+    // Common
+    common: {
+      home: 'Home',
+      about: 'About',
+      rules: 'Rules',
+      login: 'Login',
+      logout: 'Logout',
+      register: 'Register',
+      save: 'Save',
+      cancel: 'Cancel',
+      delete: 'Delete',
+      edit: 'Edit',
+      add: 'Add',
+      create: 'Create',
+      update: 'Update',
+      close: 'Close',
+      confirm: 'Confirm',
+      back: 'Back',
+      next: 'Next',
+      loading: 'Loading...',
+      error: 'Error',
+      success: 'Success',
+      warning: 'Warning',
+      info: 'Info',
+      yes: 'Yes',
+      no: 'No',
+      or: 'or',
+      and: 'and',
+      search: 'Search',
+      filter: 'Filter',
+      sort: 'Sort',
+      actions: 'Actions',
+      status: 'Status',
+      name: 'Name',
+      email: 'Email',
+      password: 'Password',
+      dashboard: 'Dashboard',
+      settings: 'Settings',
+      liveMonitor: 'Live Monitor',
+      privacy: 'Privacy Policy',
+    },
+
+    // Landing page
+    landing: {
+      heroTitle: 'Track Every Lap of Your',
+      heroTitleHighlight: '24-Hour',
+      heroTitleEnd: 'Swimming Event',
+      heroSubtitle: 'Real-time lap counting, team statistics, and live leaderboards for endurance swimming competitions. Designed for referees, loved by organizers.',
+      getStarted: 'Get Started',
+      learnMore: 'Learn More',
+      professionalTracking: 'Professional Swimming Competition Tracking',
+      
+      // Features
+      featuresTitle: 'Everything You Need',
+      featuresSubtitle: 'Complete toolkit for managing 24-hour swimming competitions from start to finish.',
+      realTimeTracking: 'Real-Time Tracking',
+      realTimeTrackingDesc: 'Count laps as they happen with instant updates visible to everyone.',
+      teamManagement: 'Team Management',
+      teamManagementDesc: 'Organize teams, assign swimmers to lanes, and track individual performance.',
+      refereeControls: 'Referee Controls',
+      refereeControlsDesc: 'Simple interface for referees to register and count swimmers on their lane.',
+      liveLeaderboard: 'Live Leaderboard',
+      liveLeaderboardDesc: 'Dynamic rankings updated in real-time as teams complete more laps.',
+      statistics: 'Statistics',
+      statisticsDesc: 'Track laps per hour, fastest times, Early Bird and Late Bird categories.',
+      multiLaneSupport: 'Multi-Lane Support',
+      multiLaneSupportDesc: 'Handle competitions with multiple swimming lanes simultaneously.',
+
+      // How it works
+      howItWorksTitle: 'How It Works',
+      howItWorksSubtitle: 'Simple workflow for organizers, referees, and spectators.',
+      step1Title: 'Setup Competition',
+      step1Desc: 'Organizer creates the event, adds teams, swimmers, and assigns referees to lanes.',
+      step2Title: 'Count Laps',
+      step2Desc: 'Referees register on their lane and tap to count each time a swimmer passes.',
+      step3Title: 'Watch Live',
+      step3Desc: 'Everyone can view the live leaderboard with real-time statistics and countdown.',
+
+      // CTA
+      ctaTitle: 'Ready to Track Your Next Competition?',
+      ctaSubtitle: 'Create your first competition in minutes. No credit card required.',
+      startFree: 'Start Free',
+    },
+
+    // About page
+    about: {
+      title: 'About SwimTrack 24',
+      socialProject: 'Social Project',
+      socialProjectDesc: 'This is a social project and there is no obligation to pay for usage of the service. However, the creator asks to use the service with respect.',
+      noWarranty: 'No Warranty',
+      noWarrantyDesc: 'There is no control on consistency of the data. The whole service is provided "as is" without any warranty or responsibility.',
+      asIs: 'The service is provided "as is", without warranty of any kind, express or implied.',
+    },
+
+    // Privacy page
+    privacy: {
+      title: 'Privacy Policy',
+      lastUpdated: 'Last updated',
+      intro: 'The protection of your personal data is an important concern for us. This privacy policy informs you about the nature, scope and purpose of the processing of personal data.',
+      
+      responsibleParty: 'Responsible Party',
+      responsiblePartyDesc: 'The operator of this website is responsible for data processing on this website.',
+      
+      dataCollection: 'Data Collection',
+      dataCollectionDesc: 'We automatically collect and store information in server log files that your browser automatically transmits to us.',
+      
+      cookies: 'Cookies',
+      cookiesDesc: 'This website uses cookies. These are small text files that are stored on your device.',
+      
+      dataProtectionRights: 'Your Rights',
+      dataProtectionRightsDesc: 'You have the right to information, correction, deletion and restriction of the processing of your personal data.',
+      
+      contact: 'Contact',
+      contactDesc: 'If you have any questions about the collection, processing or use of your personal data, you can contact us at any time.',
+    },
+
+    // FAQ page
+    faq: {
+      title: 'Frequently Asked Questions',
+      subtitle: 'Answers to the most common questions about 24-hour swimming competitions',
+      frequentQuestions: 'Common Questions',
+      askQuestion: 'Ask a Question',
+      yourEmail: 'Your Email (optional)',
+      yourQuestion: 'Your Question',
+      emailPlaceholder: 'your@email.com',
+      questionPlaceholder: 'Describe your question here...',
+      submit: 'Submit Question',
+      questionSubmitted: 'Your question has been submitted successfully!',
+      
+      // Q&A - these are templates to be adjusted manually
+      q1: 'How does lap counting work?',
+      a1: 'Referees register on their assigned lane and tap the team button when a swimmer passes. The system automatically counts and prevents double-counting within the configured timeout period.',
+      q2: 'Can multiple teams swim on the same lane?',
+      a2: 'Yes, multiple teams can be assigned to the same lane. However, only one swimmer per team can be in the water at any time. Teams on the same lane must have different colors.',
+      q3: 'How are swimmers under 12 years old handled?',
+      a3: 'Swimmers under 12 require registered parent contact information and must have a parent present during swimming, especially during night hours (22:00-04:00).',
+      q4: 'What happens if I accidentally double-tap?',
+      a4: 'The system automatically prevents double-counting within the organizer-configured timeout period. Rapid consecutive taps will be ignored.',
+      q5: 'Can one referee control multiple lanes?',
+      a5: 'Yes, during low-activity periods (e.g., 3 AM), one referee may control multiple lanes if only a few swimmers are active.',
+      q6: 'How do the Early Bird and Late Bird categories work?',
+      a6: 'Early Bird counts laps between 05:00 and 06:00 AM. Late Bird counts laps between 00:00 and 01:00 AM. These categories reward swimmers who are active during challenging hours.',
+      q7: 'Can I end the competition early?',
+      a7: 'Yes, organizers can end the competition early using the Force Stop feature. This requires double confirmation by entering the organizer email, competition name, and confirmation checkbox.',
+      q8: 'How do I change a team\'s lane assignment?',
+      a8: 'Lane changes can only be made by the organizer. Contact your competition organizer to request changes to lane assignments.',
+      q9: 'What is the double-count timeout?',
+      a9: 'The double-count timeout is a configurable period set by the organizer that prevents accidental multiple taps from being counted. This is set per competition.',
+      q10: 'How can I share the live monitor?',
+      a10: 'Each competition has a unique monitor URL that can be shared with spectators. Anonymous access is available - no login required to view.',
+    },
+
+    // Rules page (kept for backwards compatibility)
+    rules: {
+      title: 'Competition Rules',
+      subtitle: 'Official rules and guidelines for 24-hour swimming competitions',
+      generalRules: 'General Rules',
+      swimmerRules: 'Swimmer Rules',
+      refereeRules: 'Referee Rules',
+      teamRules: 'Team Rules',
+    },
+
+    // Auth
+    auth: {
+      loginTitle: 'Welcome Back',
+      loginSubtitle: 'Sign in to your account',
+      registerTitle: 'Create Account',
+      registerSubtitle: 'Register as an organizer',
+      emailPlaceholder: 'your@email.com',
+      passwordPlaceholder: 'Your password',
+      namePlaceholder: 'Your name',
+      loginButton: 'Sign In',
+      registerButton: 'Register',
+      noAccount: "Don't have an account?",
+      hasAccount: 'Already have an account?',
+      invalidCredentials: 'Invalid credentials',
+      emailExists: 'This email already exists',
+      organizer: 'Organizer',
+      referee: 'Referee',
+      selectRole: 'Select role',
+    },
+
+    // Competition
+    competition: {
+      title: 'Competition',
+      competitions: 'Competitions',
+      createCompetition: 'Create Competition',
+      editCompetition: 'Edit Competition',
+      deleteCompetition: 'Delete Competition',
+      competitionName: 'Competition Name',
+      description: 'Description',
+      date: 'Date',
+      location: 'Location',
+      startTime: 'Start Time',
+      endTime: 'End Time',
+      numberOfLanes: 'Number of Lanes',
+      laneLength: 'Lane Length (m)',
+      status: {
+        upcoming: 'Upcoming',
+        active: 'Active',
+        paused: 'Paused',
+        completed: 'Completed',
+        stopped: 'Stopped',
+      },
+      noCompetitions: 'No competitions yet',
+      selectCompetition: 'Select Competition',
+      competitionDetails: 'Competition Details',
+
+      // Controls
+      controls: 'Controls',
+      startCompetition: 'Start Competition',
+      pauseCompetition: 'Pause Competition',
+      resumeCompetition: 'Resume Competition',
+      finishCompetition: 'Finish Competition',
+      forceStop: 'Force Stop',
+      autoStart: 'Auto Start',
+      autoFinish: 'Auto Finish',
+      manualControl: 'Manual Control',
+      
+      // Force stop confirmation
+      forceStopTitle: 'Force Stop Competition?',
+      forceStopWarning: 'This action cannot be undone. All active swimmers will be ended.',
+      confirmEmail: 'Confirm Email',
+      confirmName: 'Confirm Competition Name',
+      confirmCheckbox: 'I confirm that the competition should be stopped now',
+    },
+
+    // Teams
+    team: {
+      teams: 'Teams',
+      addTeam: 'Add Team',
+      editTeam: 'Edit Team',
+      teamName: 'Team Name',
+      teamColor: 'Team Color',
+      assignedLane: 'Assigned Lane',
+      noTeams: 'No teams yet',
+      colorConflict: 'Two teams on the same lane cannot have the same color',
+    },
+
+    // Swimmers
+    swimmer: {
+      swimmers: 'Swimmers',
+      addSwimmer: 'Add Swimmer',
+      swimmerName: 'Swimmer Name',
+      underTwelve: 'Under 12 years old',
+      parentContact: 'Parent Contact',
+      parentName: 'Parent Name',
+      parentPresent: 'Parent Present',
+      parentRequired: 'Parent contact is required for swimmers under 12',
+      nightTimeRestriction: 'Swimmers under 12 require a parent present between 22:00 and 04:00',
+      noSwimmers: 'No swimmers yet',
+      registerSwimmer: 'Register Swimmer',
+      unregisterSwimmer: 'Unregister Swimmer',
+      activeSwimmer: 'Active Swimmer',
+      noActiveSwimmer: 'No active swimmer',
+    },
+
+    // Referees
+    referee: {
+      referees: 'Referees',
+      addReferee: 'Add Referee',
+      refereeName: 'Referee Name',
+      refereeEmail: 'Email (optional)',
+      generatedId: 'Generated ID',
+      generatedPassword: 'Generated Password',
+      noReferees: 'No referees yet',
+      registerToLane: 'Register to Lane',
+      unregisterFromLane: 'Unregister from Lane',
+      forceUnregister: 'Force Unregister',
+      resetPassword: 'Reset Password',
+      passwordReset: 'Password has been reset',
+      newPassword: 'New Password',
+      assignedCompetitions: 'Assigned Competitions',
+      lane: 'Lane',
+      registeredAt: 'Registered at',
+    },
+
+    // Lap counting
+    lap: {
+      laps: 'Laps',
+      lapCount: 'Lap Count',
+      countLap: 'Count Lap',
+      tooSoon: 'Too soon! Wait',
+      seconds: 'seconds',
+      lastCount: 'Last count',
+      totalLaps: 'Total Laps',
+      lapsPerHour: 'Laps per Hour',
+      fastestLap: 'Fastest Lap',
+      distance: 'Distance',
+    },
+
+    // Monitor
+    monitor: {
+      title: 'Live Monitor',
+      leaderboard: 'Leaderboard',
+      countdown: 'Countdown',
+      timeRemaining: 'Time Remaining',
+      competitionEnded: 'Competition Ended',
+      competitionNotStarted: 'Competition Not Started',
+      earlyBird: 'Early Bird (05:00-06:00)',
+      lateBird: 'Late Bird (00:00-01:00)',
+      rank: 'Rank',
+      noData: 'No data available',
+    },
+
+    // Admin
+    admin: {
+      title: 'Administration',
+      smtpConfig: 'SMTP Configuration',
+      smtpHost: 'SMTP Host',
+      smtpPort: 'SMTP Port',
+      smtpUser: 'SMTP User',
+      smtpPassword: 'SMTP Password',
+      smtpFrom: 'From Email',
+      testEmail: 'Send Test Email',
+      
+      authType: 'Authentication Type',
+      authBuiltIn: 'Built-in',
+      authExternal: 'External (API)',
+      backendUrl: 'Backend URL',
+      
+      emailNotifications: 'Email Notifications',
+      emailOrganizerRegistration: 'Organizer Registration',
+      emailPasswordReset: 'Password Reset',
+      emailCompetitionResult: 'Competition Result',
+      emailFaqFeedback: 'FAQ Feedback/Questions',
+      
+      activeUsers: 'Active Users',
+      organizersOnline: 'Organizers Online',
+      refereesOnline: 'Referees Online',
+      
+      competitionStats: 'Competition Statistics',
+      plannedCompetitions: 'Planned Competitions',
+      completedCompetitions: 'Completed Competitions',
+      
+      maintenance: 'Maintenance Mode',
+      enableMaintenance: 'Enable Maintenance Mode',
+      maintenanceMessage: 'The website is currently under maintenance. Please try again later.',
+      
+      changePassword: 'Change Password',
+      currentPassword: 'Current Password',
+      newPassword: 'New Password',
+      confirmPassword: 'Confirm Password',
+    },
+
+    // Validation
+    validation: {
+      required: 'This field is required',
+      invalidEmail: 'Invalid email address',
+      minLength: 'Minimum {min} characters required',
+      maxLength: 'Maximum {max} characters allowed',
+      passwordMismatch: 'Passwords do not match',
+      futureDate: 'Date must be in the future',
+    },
+
+    // Toasts/Notifications
+    toast: {
+      competitionCreated: 'Competition created',
+      competitionUpdated: 'Competition updated',
+      competitionDeleted: 'Competition deleted',
+      competitionStarted: 'Competition started',
+      competitionPaused: 'Competition paused',
+      competitionResumed: 'Competition resumed',
+      competitionFinished: 'Competition finished',
+      competitionStopped: 'Competition stopped',
+      teamCreated: 'Team created',
+      teamUpdated: 'Team updated',
+      teamDeleted: 'Team deleted',
+      swimmerAdded: 'Swimmer added',
+      swimmerRemoved: 'Swimmer removed',
+      refereeAdded: 'Referee added',
+      refereeRemoved: 'Referee removed',
+      registeredToLane: 'Registered to lane',
+      unregisteredFromLane: 'Unregistered from lane',
+      lapCounted: 'Lap counted',
+      settingsSaved: 'Settings saved',
+      passwordChanged: 'Password changed',
+      emailSent: 'Email sent',
+    },
+
+    // Footer
+    footer: {
+      navigation: 'Navigation',
+      access: 'Access',
+      forOrganizers: 'For Organizers',
+    },
+  },
+} as const;
+
+// Use a more flexible type that allows both language translations
+export type TranslationKeys = {
+  common: typeof translations.de.common | typeof translations.en.common;
+  landing: typeof translations.de.landing | typeof translations.en.landing;
+  about: typeof translations.de.about | typeof translations.en.about;
+  privacy: typeof translations.de.privacy | typeof translations.en.privacy;
+  rules: typeof translations.de.rules | typeof translations.en.rules;
+  faq: typeof translations.de.faq | typeof translations.en.faq;
+  auth: typeof translations.de.auth | typeof translations.en.auth;
+  competition: typeof translations.de.competition | typeof translations.en.competition;
+  team: typeof translations.de.team | typeof translations.en.team;
+  swimmer: typeof translations.de.swimmer | typeof translations.en.swimmer;
+  referee: typeof translations.de.referee | typeof translations.en.referee;
+  lap: typeof translations.de.lap | typeof translations.en.lap;
+  monitor: typeof translations.de.monitor | typeof translations.en.monitor;
+  admin: typeof translations.de.admin | typeof translations.en.admin;
+  validation: typeof translations.de.validation | typeof translations.en.validation;
+  toast: typeof translations.de.toast | typeof translations.en.toast;
+  footer: typeof translations.de.footer | typeof translations.en.footer;
+};
