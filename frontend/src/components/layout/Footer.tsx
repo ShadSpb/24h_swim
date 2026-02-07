@@ -12,7 +12,7 @@ export function Footer() {
           <div className="space-y-4">
             <Link to="/" className="flex items-center gap-2">
               <Waves className="h-6 w-6 text-primary" />
-              <span className="text-lg font-bold">SwimTrack 24</span>
+              <span className="text-lg font-bold">24swim.de</span>
             </Link>
             <p className="text-sm text-muted-foreground">
               {t.landing.professionalTracking}
@@ -25,11 +25,6 @@ export function Footer() {
               <li>
                 <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
                   {t.common.home}
-                </Link>
-              </li>
-              <li>
-                <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                  {t.common.about}
                 </Link>
               </li>
               <li>

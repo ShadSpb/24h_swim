@@ -39,7 +39,6 @@ export function Header() {
 
   const navLinks = [
     { to: '/', label: t.common.home },
-    { to: '/about', label: t.common.about },
     { to: '/faq', label: t.faq.title },
     { to: '/privacy', label: t.common.privacy },
   ];
@@ -49,7 +48,7 @@ export function Header() {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <Waves className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">SwimTrack 24</span>
+          <span className="text-xl font-bold">24swim.de</span>
         </Link>
 
         {/* Desktop Navigation */}

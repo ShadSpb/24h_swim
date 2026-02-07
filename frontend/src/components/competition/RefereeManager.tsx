@@ -10,7 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Referee, User } from '@/types';
 import { refereeStorage } from '@/lib/storage';
-import { generateHumanPassword, generateRefereeId, isGeneratedRefereeId } from '@/lib/utils/password';
+import { generateHumanPassword, generateRefereeId, isGeneratedRefereeId, hashPassword } from '@/lib/utils/password';
 import { UserPlus, Trash2, Key, Mail, Copy, Eye, EyeOff } from 'lucide-react';
 
 interface RefereeManagerProps {
@@ -32,17 +32,18 @@ export function RefereeManager({ referees, competitionId, onUpdate }: RefereeMan
   const [refereeName, setRefereeName] = useState('');
   const [refereeEmail, setRefereeEmail] = useState('');
 
-  const handleAddReferee = () => {
+  const handleAddReferee = async () => {
     const hasEmail = refereeEmail.trim().length > 0;
     const userId = hasEmail ? refereeEmail.trim() : generateRefereeId();
     const password = generateHumanPassword();
+    const passwordHash = await hashPassword(password);
     
     const referee: Referee = {
       id: crypto.randomUUID(),
       userId,
       name: refereeName.trim(),
       email: userId,
-      password,
+      passwordHash,
       competitionId,
       createdAt: new Date().toISOString(),
     };
@@ -59,7 +60,7 @@ export function RefereeManager({ referees, competitionId, onUpdate }: RefereeMan
         const newUser: User = {
           id: crypto.randomUUID(),
           email: userId,
-          password,
+          passwordHash,
           name: refereeName.trim(),
           role: 'referee',
           createdAt: new Date().toISOString(),
@@ -68,7 +69,7 @@ export function RefereeManager({ referees, competitionId, onUpdate }: RefereeMan
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
       }
       
-      // Show the generated credentials
+      // Show the generated credentials (plain text for user to see)
       setGeneratedCredentials({ id: userId, password });
       setShowPasswordDialog(true);
     } else {
@@ -80,7 +81,7 @@ export function RefereeManager({ referees, competitionId, onUpdate }: RefereeMan
         const newUser: User = {
           id: crypto.randomUUID(),
           email: refereeEmail.trim(),
-          password,
+          passwordHash,
           name: refereeName.trim(),
           role: 'referee',
           createdAt: new Date().toISOString(),
@@ -105,11 +106,12 @@ export function RefereeManager({ referees, competitionId, onUpdate }: RefereeMan
     });
   };
 
-  const handleResetPassword = (referee: Referee) => {
+  const handleResetPassword = async (referee: Referee) => {
     const newPassword = generateHumanPassword();
+    const newPasswordHash = await hashPassword(newPassword);
     
     // Update referee record
-    const updatedReferee = { ...referee, password: newPassword };
+    const updatedReferee = { ...referee, passwordHash: newPasswordHash };
     refereeStorage.save(updatedReferee);
     
     // Update user account
@@ -117,7 +119,7 @@ export function RefereeManager({ referees, competitionId, onUpdate }: RefereeMan
     const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]') as User[];
     const userIndex = users.findIndex(u => u.email === referee.email);
     if (userIndex !== -1) {
-      users[userIndex].password = newPassword;
+      users[userIndex].passwordHash = newPasswordHash;
       localStorage.setItem(USERS_KEY, JSON.stringify(users));
     }
     
@@ -128,7 +130,7 @@ export function RefereeManager({ referees, competitionId, onUpdate }: RefereeMan
       localStorage.removeItem(AUTH_KEY);
     }
     
-    setGeneratedCredentials({ id: referee.email, password: newPassword });
+    setGeneratedCredentials({ id: referee.email || referee.userId, password: newPassword });
     setShowPasswordDialog(true);
     onUpdate();
     

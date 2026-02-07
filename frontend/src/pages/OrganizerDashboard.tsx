@@ -15,7 +15,7 @@ import { competitionStorage, teamStorage, swimmerStorage, refereeStorage, laneAs
 import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { CompetitionControls } from '@/components/competition/CompetitionControls';
-import { generateHumanPassword, generateRefereeId } from '@/lib/utils/password';
+import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/utils/password';
 import { downloadPDF } from '@/lib/utils/pdfGenerator';
 
 export default function OrganizerDashboard() {
@@ -207,19 +207,20 @@ export default function OrganizerDashboard() {
   // State for showing referee credentials after creation
   const [newRefereeCredentials, setNewRefereeCredentials] = useState<{ userId: string; password: string; name?: string } | null>(null);
 
-  const handleCreateReferee = () => {
+  const handleCreateReferee = async () => {
     if (!selectedCompetition) return;
     
     try {
       // Generate a referee ID and password immediately
       const refUserId = generateRefereeId();
       const password = generateHumanPassword();
+      const passwordHash = await hashPassword(password);
       
       const referee: Referee = {
         id: crypto.randomUUID(),
         userId: refUserId,
         name: refUserId, // Use ID as name
-        password,
+        passwordHash,
         competitionId: selectedCompetition.id,
         createdAt: new Date().toISOString(),
       };
@@ -231,7 +232,7 @@ export default function OrganizerDashboard() {
         const newUser: User = {
           id: crypto.randomUUID(),
           email: refUserId,
-          password,
+          passwordHash,
           name: refUserId,
           role: 'referee',
           createdAt: new Date().toISOString(),
@@ -243,7 +244,7 @@ export default function OrganizerDashboard() {
       refereeStorage.save(referee);
       loadCompetitionData(selectedCompetition);
       
-      // Show credentials immediately
+      // Show credentials immediately (plain text for user to see)
       setNewRefereeCredentials({ userId: refUserId, password });
       
       toast({ 
@@ -256,12 +257,13 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const handleResetRefereePassword = (referee: Referee) => {
+  const handleResetRefereePassword = async (referee: Referee) => {
     try {
       const newPassword = generateHumanPassword();
+      const newPasswordHash = await hashPassword(newPassword);
       
       // Update referee record
-      const updatedReferee = { ...referee, password: newPassword };
+      const updatedReferee = { ...referee, passwordHash: newPasswordHash };
       refereeStorage.save(updatedReferee);
       
       // Update user account
@@ -269,7 +271,7 @@ export default function OrganizerDashboard() {
       const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]') as User[];
       const userIndex = users.findIndex(u => u.email === referee.userId);
       if (userIndex !== -1) {
-        users[userIndex].password = newPassword;
+        users[userIndex].passwordHash = newPasswordHash;
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
       }
       
@@ -283,7 +285,7 @@ export default function OrganizerDashboard() {
       // Refresh data
       if (selectedCompetition) loadCompetitionData(selectedCompetition);
       
-      // Show new credentials
+      // Show new credentials (plain text for user to see)
       setNewRefereeCredentials({ userId: referee.userId, password: newPassword, name: referee.name });
       
       toast({ title: 'Password reset successfully' });

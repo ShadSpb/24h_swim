@@ -51,7 +51,7 @@ export default function Login() {
       if (result) {
         toast({
           title: t.common.success,
-          description: 'You have been logged in successfully.',
+          description: t.auth.loginSuccess,
         });
         // Navigate will happen after auth state updates - check saved auth
         const savedAuth = localStorage.getItem('swimtrack_auth');
@@ -68,7 +68,7 @@ export default function Login() {
       } else {
         toast({
           title: t.auth.invalidCredentials,
-          description: 'Invalid email or password.',
+          description: t.auth.loginFailed,
           variant: 'destructive',
         });
       }
@@ -87,8 +87,8 @@ export default function Login() {
   const handleForgotPassword = async () => {
     if (!resetEmail.trim()) {
       toast({
-        title: 'Email required',
-        description: 'Please enter your email address.',
+        title: t.auth.emailRequired,
+        description: t.auth.enterEmailAddress,
         variant: 'destructive',
       });
       return;
@@ -102,8 +102,8 @@ export default function Login() {
       
       if (!user) {
         toast({
-          title: 'User not found',
-          description: 'No account found with this email address.',
+          title: t.auth.userNotFound,
+          description: t.auth.noAccountWithEmail,
           variant: 'destructive',
         });
         setIsResetting(false);
@@ -116,13 +116,13 @@ export default function Login() {
       if (result.success) {
         setEmailSent(true);
         toast({
-          title: 'Password reset successful',
-          description: 'Your new password has been sent to your email.',
+          title: t.auth.resetSuccessful,
+          description: t.auth.resetPasswordSent,
         });
       } else {
         toast({
-          title: 'Reset failed',
-          description: result.error || 'Could not reset password. Please try again.',
+          title: t.auth.resetFailed,
+          description: result.error || t.auth.couldNotReset,
           variant: 'destructive',
         });
       }
@@ -186,7 +186,7 @@ export default function Login() {
                           className="px-0 h-auto font-normal text-sm text-muted-foreground hover:text-primary"
                           onClick={() => setShowForgotPassword(true)}
                         >
-                          Forgot password?
+                          {t.auth.forgotPassword}
                         </Button>
                       </div>
                       <FormControl>
@@ -218,11 +218,11 @@ export default function Login() {
       <Dialog open={showForgotPassword} onOpenChange={handleDialogClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
+            <DialogTitle>{t.auth.resetPassword}</DialogTitle>
             <DialogDescription>
               {emailSent 
-                ? 'Your password has been reset and sent to your email address.'
-                : 'Enter your email address and we\'ll send you a new password.'
+                ? t.auth.resetPasswordSent
+                : t.auth.resetPasswordDesc
               }
             </DialogDescription>
           </DialogHeader>
@@ -231,11 +231,11 @@ export default function Login() {
             <>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="reset-email">Email address</Label>
+                  <Label htmlFor="reset-email">{t.auth.emailAddress}</Label>
                   <Input
                     id="reset-email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder={t.auth.enterEmail}
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleForgotPassword()}
@@ -244,11 +244,11 @@ export default function Login() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={handleDialogClose}>
-                  Cancel
+                  {t.common.cancel}
                 </Button>
                 <Button onClick={handleForgotPassword} disabled={isResetting}>
                   {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Send Reset Email
+                  {t.auth.sendResetEmail}
                 </Button>
               </DialogFooter>
             </>
@@ -262,21 +262,21 @@ export default function Login() {
                   <div>
                     <h3 className="font-semibold text-lg flex items-center justify-center gap-2">
                       <CheckCircle className="h-5 w-5 text-primary" />
-                      Email Sent!
+                      {t.auth.emailSent}
                     </h3>
                     <p className="text-muted-foreground mt-2">
-                      We've sent your new password to:
+                      {t.auth.newPasswordSent}
                     </p>
                     <p className="font-medium text-foreground">{resetEmail}</p>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Please check your inbox (and spam folder) for the email with your new password.
+                    {t.auth.checkInbox}
                   </p>
                 </div>
               </div>
               <DialogFooter>
                 <Button onClick={handleDialogClose} className="w-full">
-                  Done
+                  {t.auth.done}
                 </Button>
               </DialogFooter>
             </>

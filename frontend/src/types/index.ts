@@ -5,7 +5,7 @@ export type UserRole = 'organizer' | 'referee' | 'monitor';
 export interface User {
   id: string;
   email: string;
-  password: string; // In real app, this would be hashed
+  passwordHash: string; // SHA-256 hash of password
   role: UserRole;
   name: string;
   createdAt: string;
@@ -59,7 +59,7 @@ export interface Referee {
   userId: string; // Generated login ID (ref_#####)
   name: string;
   email?: string; // Optional email
-  password: string; // Generated human-friendly password
+  passwordHash: string; // SHA-256 hash of generated password
   competitionId: string;
   createdAt: string;
 }

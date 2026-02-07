@@ -1,10 +1,34 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Shield, FileText, Cookie, UserCheck, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { Shield, FileText, Cookie, UserCheck, Mail, Send } from 'lucide-react';
 
 export default function Privacy() {
   const { t } = useLanguage();
+  const { toast } = useToast();
+  
+  const [question, setQuestion] = useState('');
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitQuestion = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!question.trim()) return;
+    
+    setIsSubmitting(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast({ title: t.faq.questionSubmitted });
+    setQuestion('');
+    setEmail('');
+    setIsSubmitting(false);
+  };
 
   return (
     <MainLayout>
@@ -111,6 +135,44 @@ export default function Privacy() {
               / This privacy policy may be updated from time to time. We recommend visiting this page regularly.
             </p>
           </div>
+
+          {/* Contact Form */}
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Send className="h-5 w-5" />
+                {t.faq.askQuestion}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmitQuestion} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">{t.faq.yourEmail}</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t.faq.emailPlaceholder}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="question">{t.faq.yourQuestion}</Label>
+                  <Textarea
+                    id="question"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    placeholder={t.faq.questionPlaceholder}
+                    rows={4}
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={isSubmitting || !question.trim()}>
+                  {isSubmitting ? t.common.loading : t.faq.submit}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </MainLayout>

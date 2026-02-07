@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import Landing from "./pages/Landing";
-import About from "./pages/About";
 import FAQ from "./pages/FAQ";
 import Privacy from "./pages/Privacy";
 import Login from "./pages/Login";
@@ -29,7 +28,6 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               <Route path="/" element={<Landing />} />
-              <Route path="/about" element={<About />} />
               <Route path="/faq" element={<FAQ />} />
               <Route path="/rules" element={<FAQ />} />
               <Route path="/privacy" element={<Privacy />} />

@@ -51,13 +51,13 @@ export default function Register() {
       if (success) {
         toast({
           title: t.common.success,
-          description: 'Welcome to SwimTrack 24.',
+          description: t.auth.welcomeToSwimTrack,
         });
         navigate('/organizer');
       } else {
         toast({
           title: t.auth.emailExists,
-          description: 'An account with this email already exists.',
+          description: t.auth.accountExists,
           variant: 'destructive',
         });
       }

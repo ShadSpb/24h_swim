@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +14,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Competition, Team, Swimmer } from '@/types';
 import { dataApi, getTeamStats, getSwimmerStats, isRemoteMode } from '@/lib/api';
-import { Trophy, Clock, Zap, Moon, Sun, Waves, RefreshCw, ArrowUpDown, Users, User, MapPin, Calendar, Ruler, AlertCircle } from 'lucide-react';
+import { loadSiteConfig } from '@/lib/config/siteConfig';
+import { Trophy, Clock, Zap, Moon, Sun, Waves, RefreshCw, ArrowUpDown, Users, User, MapPin, Calendar, Ruler, AlertCircle, QrCode } from 'lucide-react';
 
 type SortDirection = 'asc' | 'desc';
 type TeamSortKey = 'rank' | 'name' | 'laps' | 'lapsPerHour' | 'fastestLap' | 'lateBird' | 'earlyBird';
@@ -50,6 +53,7 @@ const REFRESH_INTERVALS = [
 
 export default function Monitor() {
   const { competitionId } = useParams();
+  const { t } = useLanguage();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
   const [teamStats, setTeamStats] = useState<Awaited<ReturnType<typeof getTeamStats>>>([]);
@@ -59,6 +63,7 @@ export default function Monitor() {
   const [viewMode, setViewMode] = useState<'team' | 'swimmer'>('team');
   const [apiError, setApiError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [siteDomain, setSiteDomain] = useState<string>('');
   
   // Auto-refresh state
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -70,6 +75,13 @@ export default function Monitor() {
   const [teamSortDir, setTeamSortDir] = useState<SortDirection>('asc');
   const [swimmerSortKey, setSwimmerSortKey] = useState<SwimmerSortKey>('rank');
   const [swimmerSortDir, setSwimmerSortDir] = useState<SortDirection>('asc');
+
+  // Load site config
+  useEffect(() => {
+    loadSiteConfig().then(config => {
+      setSiteDomain(config.site?.domain || '');
+    });
+  }, []);
 
   useEffect(() => {
     const loadCompetitions = async () => {
@@ -294,7 +306,7 @@ export default function Monitor() {
 
   const totalLaps = teamStats.reduce((sum, ts) => sum + ts.totalLaps, 0);
   const totalDistance = selectedCompetition 
-    ? (totalLaps * selectedCompetition.laneLength * 2) / 1000 
+    ? (totalLaps * selectedCompetition.laneLength) / 1000 
     : 0;
 
   return (
@@ -302,8 +314,8 @@ export default function Monitor() {
       <div className="container py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Live Monitor</h1>
-            <p className="text-muted-foreground">Real-time competition standings</p>
+            <h1 className="text-3xl font-bold">{t.monitor.title}</h1>
+            <p className="text-muted-foreground">{t.monitor.subtitle}</p>
           </div>
           
           {!competitionId && (
@@ -317,7 +329,7 @@ export default function Monitor() {
               }
             }}>
               <SelectTrigger className="w-64">
-                <SelectValue placeholder="Select competition" />
+                <SelectValue placeholder={t.monitor.selectCompetition} />
               </SelectTrigger>
               <SelectContent>
                 {competitions.map(comp => (
@@ -350,8 +362,8 @@ export default function Monitor() {
           <Card className="max-w-md mx-auto">
             <CardContent className="py-16 text-center text-muted-foreground">
               <Waves className="h-16 w-16 mx-auto mb-4 opacity-50" />
-              <p className="text-lg">Select a competition to view</p>
-              <p className="text-sm">Choose from the dropdown above</p>
+              <p className="text-lg">{t.monitor.selectCompetition}</p>
+              <p className="text-sm">{t.monitor.noData}</p>
             </CardContent>
           </Card>
         ) : (
@@ -360,35 +372,35 @@ export default function Monitor() {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-2xl">{selectedCompetition.name}</CardTitle>
-                <CardDescription>Competition Details</CardDescription>
+                <CardDescription>{t.monitor.competitionDetails}</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Date</p>
+                      <p className="text-xs text-muted-foreground">{t.monitor.date}</p>
                       <p className="font-medium">{new Date(selectedCompetition.date).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Location</p>
+                      <p className="text-xs text-muted-foreground">{t.monitor.location}</p>
                       <p className="font-medium">{selectedCompetition.location}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Planned Start</p>
+                      <p className="text-xs text-muted-foreground">{t.monitor.plannedStart}</p>
                       <p className="font-medium">{selectedCompetition.startTime}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Ruler className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <p className="text-xs text-muted-foreground">Lane Length</p>
+                      <p className="text-xs text-muted-foreground">{t.monitor.laneLength}</p>
                       <p className="font-medium">{selectedCompetition.laneLength} m</p>
                     </div>
                   </div>
@@ -402,9 +414,9 @@ export default function Monitor() {
                 <CardHeader className="pb-2">
                   <CardDescription className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Time Remaining
+                    {t.monitor.timeRemaining}
                     {selectedCompetition.status === 'paused' && (
-                      <Badge variant="secondary" className="ml-2">Paused</Badge>
+                      <Badge variant="secondary" className="ml-2">{t.monitor.paused}</Badge>
                     )}
                   </CardDescription>
                 </CardHeader>
@@ -419,7 +431,7 @@ export default function Monitor() {
                 <CardHeader className="pb-2">
                   <CardDescription className="flex items-center gap-2">
                     <Waves className="h-4 w-4" />
-                    Total Laps
+                    {t.monitor.totalLaps}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -431,7 +443,7 @@ export default function Monitor() {
                 <CardHeader className="pb-2">
                   <CardDescription className="flex items-center gap-2">
                     <Zap className="h-4 w-4" />
-                    Total Distance
+                    {t.monitor.totalDistance}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -440,6 +452,36 @@ export default function Monitor() {
               </Card>
             </div>
 
+            {/* QR Code for Competition Link */}
+            {siteDomain && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <QrCode className="h-5 w-5" />
+                    Competition Link
+                  </CardTitle>
+                  <CardDescription>
+                    Scan to view live monitor
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col md:flex-row items-center gap-4">
+                  <div className="bg-white p-3 rounded-lg">
+                    <QRCodeSVG 
+                      value={`${siteDomain}/monitor/${selectedCompetition.id}`}
+                      size={120}
+                      level="M"
+                    />
+                  </div>
+                  <div className="text-center md:text-left">
+                    <p className="text-sm text-muted-foreground mb-1">Direct link:</p>
+                    <code className="text-xs bg-muted px-2 py-1 rounded break-all">
+                      {siteDomain}/monitor/{selectedCompetition.id}
+                    </code>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Leaderboard */}
             <Card>
               <CardHeader className="flex flex-col gap-4">
@@ -447,15 +489,15 @@ export default function Monitor() {
                   <div>
                     <CardTitle className="flex items-center gap-2">
                       <Trophy className="h-5 w-5 text-primary" />
-                      Leaderboard
+                      {t.monitor.leaderboard}
                     </CardTitle>
                     <CardDescription>
-                      Last updated: {lastUpdate.toLocaleTimeString()}
+                      {t.monitor.lastUpdate}: {lastUpdate.toLocaleTimeString()}
                     </CardDescription>
                   </div>
                   <Button variant="outline" size="sm" onClick={loadStats}>
                     <RefreshCw className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
-                    Refresh
+                    {t.common.update}
                   </Button>
                 </div>
                 
@@ -468,13 +510,13 @@ export default function Monitor() {
                       onCheckedChange={setAutoRefresh}
                     />
                     <Label htmlFor="auto-refresh" className="text-sm">
-                      Auto-refresh
+                      {t.monitor.autoRefresh}
                     </Label>
                   </div>
                   
                   {autoRefresh && (
                     <div className="flex items-center gap-2">
-                      <Label className="text-sm text-muted-foreground">Interval:</Label>
+                      <Label className="text-sm text-muted-foreground">{t.monitor.refreshInterval}:</Label>
                       <Select
                         value={refreshInterval.toString()}
                         onValueChange={(v) => setRefreshInterval(parseInt(v))}
@@ -506,11 +548,11 @@ export default function Monitor() {
                   <TabsList className="mb-4">
                     <TabsTrigger value="team" className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      By Team
+                      {t.monitor.viewByTeam}
                     </TabsTrigger>
                     <TabsTrigger value="swimmer" className="flex items-center gap-2">
                       <User className="h-4 w-4" />
-                      By Swimmer
+                      {t.monitor.viewBySwimmer}
                     </TabsTrigger>
                   </TabsList>
                   
@@ -519,30 +561,30 @@ export default function Monitor() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-16 cursor-pointer" onClick={() => handleTeamSort('rank')}>
-                            Rank <SortButton active={teamSortKey === 'rank'} direction={teamSortDir} />
+                            {t.monitor.rank} <SortButton active={teamSortKey === 'rank'} direction={teamSortDir} />
                           </TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleTeamSort('name')}>
-                            Team <SortButton active={teamSortKey === 'name'} direction={teamSortDir} />
+                            {t.team.teams} <SortButton active={teamSortKey === 'name'} direction={teamSortDir} />
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('laps')}>
-                            Laps / Meters <SortButton active={teamSortKey === 'laps'} direction={teamSortDir} />
+                            {t.lap.laps} <SortButton active={teamSortKey === 'laps'} direction={teamSortDir} />
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('lapsPerHour')}>
-                            Laps/Hour <SortButton active={teamSortKey === 'lapsPerHour'} direction={teamSortDir} />
+                            {t.lap.lapsPerHour} <SortButton active={teamSortKey === 'lapsPerHour'} direction={teamSortDir} />
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('fastestLap')}>
-                            Fastest Lap <SortButton active={teamSortKey === 'fastestLap'} direction={teamSortDir} />
+                            {t.lap.fastestLap} <SortButton active={teamSortKey === 'fastestLap'} direction={teamSortDir} />
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('lateBird')}>
                             <span className="flex items-center justify-end gap-1">
                               <Moon className="h-4 w-4" />
-                              Late Bird <SortButton active={teamSortKey === 'lateBird'} direction={teamSortDir} />
+                              {t.monitor.lateBird.split(' ')[0]} {t.monitor.lateBird.split(' ')[1]} <SortButton active={teamSortKey === 'lateBird'} direction={teamSortDir} />
                             </span>
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('earlyBird')}>
                             <span className="flex items-center justify-end gap-1">
                               <Sun className="h-4 w-4" />
-                              Early Bird <SortButton active={teamSortKey === 'earlyBird'} direction={teamSortDir} />
+                              {t.monitor.earlyBird.split(' ')[0]} {t.monitor.earlyBird.split(' ')[1]} <SortButton active={teamSortKey === 'earlyBird'} direction={teamSortDir} />
                             </span>
                           </TableHead>
                         </TableRow>
@@ -551,7 +593,7 @@ export default function Monitor() {
                         {sortedTeamStats.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                              No laps recorded yet
+                              {t.monitor.noData}
                             </TableCell>
                           </TableRow>
                         ) : (
@@ -607,33 +649,33 @@ export default function Monitor() {
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-16 cursor-pointer" onClick={() => handleSwimmerSort('rank')}>
-                            Rank <SortButton active={swimmerSortKey === 'rank'} direction={swimmerSortDir} />
+                            {t.monitor.rank} <SortButton active={swimmerSortKey === 'rank'} direction={swimmerSortDir} />
                           </TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleSwimmerSort('name')}>
-                            Swimmer <SortButton active={swimmerSortKey === 'name'} direction={swimmerSortDir} />
+                            {t.swimmer.swimmers} <SortButton active={swimmerSortKey === 'name'} direction={swimmerSortDir} />
                           </TableHead>
                           <TableHead className="cursor-pointer" onClick={() => handleSwimmerSort('team')}>
-                            Team <SortButton active={swimmerSortKey === 'team'} direction={swimmerSortDir} />
+                            {t.team.teams} <SortButton active={swimmerSortKey === 'team'} direction={swimmerSortDir} />
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleSwimmerSort('laps')}>
-                            Laps / Meters <SortButton active={swimmerSortKey === 'laps'} direction={swimmerSortDir} />
+                            {t.lap.laps} <SortButton active={swimmerSortKey === 'laps'} direction={swimmerSortDir} />
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleSwimmerSort('lapsPerHour')}>
-                            Laps/Hour <SortButton active={swimmerSortKey === 'lapsPerHour'} direction={swimmerSortDir} />
+                            {t.lap.lapsPerHour} <SortButton active={swimmerSortKey === 'lapsPerHour'} direction={swimmerSortDir} />
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleSwimmerSort('fastestLap')}>
-                            Fastest Lap <SortButton active={swimmerSortKey === 'fastestLap'} direction={swimmerSortDir} />
+                            {t.lap.fastestLap} <SortButton active={swimmerSortKey === 'fastestLap'} direction={swimmerSortDir} />
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleSwimmerSort('lateBird')}>
                             <span className="flex items-center justify-end gap-1">
                               <Moon className="h-4 w-4" />
-                              Late Bird <SortButton active={swimmerSortKey === 'lateBird'} direction={swimmerSortDir} />
+                              {t.monitor.lateBird.split(' ')[0]} {t.monitor.lateBird.split(' ')[1]} <SortButton active={swimmerSortKey === 'lateBird'} direction={swimmerSortDir} />
                             </span>
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleSwimmerSort('earlyBird')}>
                             <span className="flex items-center justify-end gap-1">
                               <Sun className="h-4 w-4" />
-                              Early Bird <SortButton active={swimmerSortKey === 'earlyBird'} direction={swimmerSortDir} />
+                              {t.monitor.earlyBird.split(' ')[0]} {t.monitor.earlyBird.split(' ')[1]} <SortButton active={swimmerSortKey === 'earlyBird'} direction={swimmerSortDir} />
                             </span>
                           </TableHead>
                         </TableRow>
@@ -642,7 +684,7 @@ export default function Monitor() {
                         {sortedSwimmerStats.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                              No laps recorded yet
+                              {t.monitor.noData}
                             </TableCell>
                           </TableRow>
                         ) : (

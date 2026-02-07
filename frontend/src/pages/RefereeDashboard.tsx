@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -24,6 +25,7 @@ import { Waves, AlertCircle, UserCheck, UserX, RefreshCw } from 'lucide-react';
 
 export default function RefereeDashboard() {
   const { isAuthenticated, user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -123,7 +125,7 @@ export default function RefereeDashboard() {
       // Also refresh active sessions
       const sessions = swimSessionStorage.getActive(updated.id);
       setActiveSessions(sessions.filter(s => s.isActive));
-      toast({ title: 'Status refreshed' });
+      toast({ title: t.refereeDashboard.statusRefreshed });
     }
   };
 
@@ -149,8 +151,8 @@ export default function RefereeDashboard() {
     const existingSession = getActiveSessionForTeam(team.id);
     if (existingSession) {
       toast({ 
-        title: 'Cannot register swimmer', 
-        description: 'This team already has an active swimmer.',
+        title: t.refereeDashboard.cannotRegister, 
+        description: t.refereeDashboard.teamHasActiveSwimmer,
         variant: 'destructive'
       });
       return;
@@ -173,7 +175,7 @@ export default function RefereeDashboard() {
     setShowSwimmerDialog(false);
     setSelectedLane('');
     setSelectedTeamForSwimmer('');
-    toast({ title: `${swimmer.name} is now swimming in Lane ${laneNumber}` });
+    toast({ title: `${swimmer.name} ${t.refereeDashboard.nowSwimming} ${laneNumber}` });
   };
 
   const endSwimmerSession = (session: SwimSession) => {
@@ -181,7 +183,7 @@ export default function RefereeDashboard() {
     session.isActive = false;
     swimSessionStorage.save(session);
     setActiveSessions(prev => prev.filter(s => s.id !== session.id));
-    toast({ title: `${getSwimmerName(session.swimmerId)} session ended` });
+    toast({ title: `${getSwimmerName(session.swimmerId)} ${t.refereeDashboard.sessionEnded}` });
   };
 
   const countLap = (session: SwimSession) => {
@@ -189,14 +191,14 @@ export default function RefereeDashboard() {
     
     // Check if competition is active
     if (selectedCompetition.status !== 'active') {
-      let description = 'The competition has ended.';
+      let description: string = t.refereeDashboard.competitionEndedDesc;
       if (selectedCompetition.status === 'upcoming') {
-        description = 'The competition has not started yet.';
+        description = t.refereeDashboard.competitionNotStartedDesc;
       } else if (selectedCompetition.status === 'paused') {
-        description = 'The competition is paused. Wait for organizer to resume.';
+        description = t.refereeDashboard.competitionPausedDesc;
       }
       toast({ 
-        title: 'Cannot count laps', 
+        title: t.refereeDashboard.cannotCountLaps, 
         description,
         variant: 'destructive'
       });
@@ -211,8 +213,8 @@ export default function RefereeDashboard() {
         ? Math.floor((Date.now() - lastLapTime) / 1000)
         : 0;
       toast({ 
-        title: 'Too soon!', 
-        description: `Wait ${timeout - timeSinceLastCount} more seconds`,
+        title: t.refereeDashboard.tooSoon, 
+        description: `${t.refereeDashboard.waitMore} ${timeout - timeSinceLastCount} ${t.refereeDashboard.moreSeconds}`,
         variant: 'destructive'
       });
       return;
@@ -242,7 +244,7 @@ export default function RefereeDashboard() {
     setLapCounts(prev => ({ ...prev, [teamId]: newLapNumber }));
     setLastCountTime(prev => ({ ...prev, [session.swimmerId]: Date.now() }));
     
-    toast({ title: `Lap ${newLapNumber} counted for ${getTeamName(teamId)}!` });
+    toast({ title: `${t.refereeDashboard.lapCounted} ${getTeamName(teamId)}!` });
   };
 
   const getSwimmerName = (swimmerId: string) => {
@@ -262,13 +264,25 @@ export default function RefereeDashboard() {
     return activeSessions.some(s => s.teamId === teamId);
   };
 
+  const getStatusAlertTitle = () => {
+    if (selectedCompetition?.status === 'upcoming') return t.refereeDashboard.competitionNotStarted;
+    if (selectedCompetition?.status === 'paused') return t.refereeDashboard.competitionPaused;
+    return t.refereeDashboard.competitionEnded;
+  };
+
+  const getStatusAlertDesc = () => {
+    if (selectedCompetition?.status === 'upcoming') return t.refereeDashboard.competitionNotStartedDesc;
+    if (selectedCompetition?.status === 'paused') return t.refereeDashboard.competitionPausedDesc;
+    return t.refereeDashboard.competitionEndedDesc;
+  };
+
   return (
     <MainLayout showFooter={false}>
       <div className="container py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Referee Dashboard</h1>
-            <p className="text-muted-foreground">Count laps for swimmers</p>
+            <h1 className="text-3xl font-bold">{t.refereeDashboard.title}</h1>
+            <p className="text-muted-foreground">{t.refereeDashboard.subtitle}</p>
           </div>
         </div>
 
@@ -276,22 +290,22 @@ export default function RefereeDashboard() {
         {!selectedCompetition && (
           <Card className="max-w-md mx-auto">
             <CardHeader>
-              <CardTitle>Select Competition</CardTitle>
-              <CardDescription>Choose the competition you're refereeing</CardDescription>
+              <CardTitle>{t.refereeDashboard.selectCompetition}</CardTitle>
+              <CardDescription>{t.refereeDashboard.selectCompetitionDesc}</CardDescription>
             </CardHeader>
             <CardContent>
               {competitions.length === 0 ? (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>No assignments</AlertTitle>
+                  <AlertTitle>{t.refereeDashboard.noAssignments}</AlertTitle>
                   <AlertDescription>
-                    You haven't been assigned to any competitions yet.
+                    {t.refereeDashboard.noAssignmentsDesc}
                   </AlertDescription>
                 </Alert>
               ) : (
                 <Select onValueChange={selectCompetition}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a competition" />
+                    <SelectValue placeholder={t.refereeDashboard.selectCompetition} />
                   </SelectTrigger>
                   <SelectContent>
                     {competitions.map(comp => (
@@ -313,20 +327,8 @@ export default function RefereeDashboard() {
             {selectedCompetition.status !== 'active' && (
               <Alert variant={selectedCompetition.status === 'upcoming' || selectedCompetition.status === 'paused' ? 'default' : 'destructive'}>
                 <AlertCircle className="h-4 w-4" />
-                <AlertTitle>
-                  {selectedCompetition.status === 'upcoming' 
-                    ? 'Competition Not Started' 
-                    : selectedCompetition.status === 'paused'
-                    ? 'Competition Paused'
-                    : 'Competition Ended'}
-                </AlertTitle>
-                <AlertDescription>
-                  {selectedCompetition.status === 'upcoming' 
-                    ? 'Lap counting will be available once the organizer starts the competition.'
-                    : selectedCompetition.status === 'paused'
-                    ? 'The competition is paused. Lap counting will resume when the organizer continues.'
-                    : 'The competition has ended. Lap counting is no longer available.'}
-                </AlertDescription>
+                <AlertTitle>{getStatusAlertTitle()}</AlertTitle>
+                <AlertDescription>{getStatusAlertDesc()}</AlertDescription>
               </Alert>
             )}
 
@@ -335,7 +337,7 @@ export default function RefereeDashboard() {
               <CardContent className="py-4">
                 <div className="flex flex-wrap justify-between items-center gap-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Competition</p>
+                    <p className="text-sm text-muted-foreground">{t.competition.title}</p>
                     <div className="flex items-center gap-2">
                       <p className="font-semibold">{selectedCompetition.name}</p>
                       <Badge variant={
@@ -344,7 +346,7 @@ export default function RefereeDashboard() {
                         : selectedCompetition.status === 'upcoming' ? 'outline' 
                         : 'secondary'
                       }>
-                        {selectedCompetition.status}
+                        {t.competition.status[selectedCompetition.status]}
                       </Badge>
                     </div>
                   </div>
@@ -352,23 +354,23 @@ export default function RefereeDashboard() {
                   {/* Elapsed Time - Only show if competition has started */}
                   {selectedCompetition.actualStartTime && (
                     <div>
-                      <p className="text-sm text-muted-foreground">Elapsed Time</p>
+                      <p className="text-sm text-muted-foreground">{t.refereeDashboard.elapsedTime}</p>
                       <p className="font-semibold text-2xl font-mono">{elapsedTime}</p>
                     </div>
                   )}
                   
                   <div>
-                    <p className="text-sm text-muted-foreground">Active Swimmers</p>
+                    <p className="text-sm text-muted-foreground">{t.refereeDashboard.activeSwimmers}</p>
                     <p className="font-semibold text-2xl">{activeSessions.length}</p>
                   </div>
                   
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={refreshCompetition}>
                       <RefreshCw className="h-4 w-4 mr-1" />
-                      Refresh
+                      {t.refereeDashboard.refresh}
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => setSelectedCompetition(null)}>
-                      Change Competition
+                      {t.refereeDashboard.changeCompetition}
                     </Button>
                   </div>
                 </div>
@@ -379,11 +381,11 @@ export default function RefereeDashboard() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Register Swimmer</CardTitle>
+                  <CardTitle>{t.refereeDashboard.registerSwimmer}</CardTitle>
                   <CardDescription>
                     {activeSessions.length > 0 
-                      ? `${activeSessions.length} swimmer(s) currently in the water` 
-                      : 'No swimmers in the water'}
+                      ? `${activeSessions.length} ${t.refereeDashboard.swimmersInWater}` 
+                      : t.refereeDashboard.noSwimmersInWater}
                   </CardDescription>
                 </div>
                 <Dialog open={showSwimmerDialog} onOpenChange={(open) => {
@@ -396,31 +398,31 @@ export default function RefereeDashboard() {
                   <DialogTrigger asChild>
                     <Button>
                       <UserCheck className="h-4 w-4 mr-2" />
-                      Register Swimmer
+                      {t.refereeDashboard.registerSwimmer}
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Register Swimmer</DialogTitle>
-                      <DialogDescription>Select lane, team, then swimmer to enter the water</DialogDescription>
+                      <DialogTitle>{t.refereeDashboard.registerSwimmer}</DialogTitle>
+                      <DialogDescription>{t.refereeDashboard.registerSwimmerDesc}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                       {/* Step 1: Select Lane */}
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">1. Select Lane</label>
+                        <label className="text-sm font-medium">{t.refereeDashboard.step1}</label>
                         <Select value={selectedLane} onValueChange={(value) => {
                           setSelectedLane(value);
                           setSelectedTeamForSwimmer('');
                         }}>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select lane" />
+                            <SelectValue placeholder={t.refereeDashboard.selectLane} />
                           </SelectTrigger>
                           <SelectContent>
                             {Array.from({ length: selectedCompetition.numberOfLanes }, (_, i) => {
                               const laneTeams = getTeamsForLane(i + 1);
                               return (
                                 <SelectItem key={i + 1} value={(i + 1).toString()}>
-                                  Lane {i + 1} ({laneTeams.length} teams)
+                                  {t.refereeDashboard.lane} {i + 1} ({laneTeams.length} {t.refereeDashboard.teams})
                                 </SelectItem>
                               );
                             })}
@@ -431,10 +433,10 @@ export default function RefereeDashboard() {
                       {/* Step 2: Select Team */}
                       {selectedLane && (
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">2. Select Team</label>
+                          <label className="text-sm font-medium">{t.refereeDashboard.step2}</label>
                           <Select value={selectedTeamForSwimmer} onValueChange={setSelectedTeamForSwimmer}>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select team" />
+                              <SelectValue placeholder={t.refereeDashboard.selectTeam} />
                             </SelectTrigger>
                             <SelectContent>
                               {getTeamsForLane(parseInt(selectedLane)).map(team => {
@@ -448,7 +450,7 @@ export default function RefereeDashboard() {
                                     <div className="flex items-center gap-2">
                                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }} />
                                       {team.name}
-                                      {hasActive && <Badge variant="secondary" className="ml-1">Swimming</Badge>}
+                                      {hasActive && <Badge variant="secondary" className="ml-1">{t.refereeDashboard.swimming}</Badge>}
                                     </div>
                                   </SelectItem>
                                 );
@@ -456,7 +458,7 @@ export default function RefereeDashboard() {
                             </SelectContent>
                           </Select>
                           {getTeamsForLane(parseInt(selectedLane)).length === 0 && (
-                            <p className="text-sm text-muted-foreground">No teams assigned to this lane</p>
+                            <p className="text-sm text-muted-foreground">{t.refereeDashboard.noTeamsOnLane}</p>
                           )}
                         </div>
                       )}
@@ -464,7 +466,7 @@ export default function RefereeDashboard() {
                       {/* Step 3: Select Swimmer */}
                       {selectedTeamForSwimmer && (
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">3. Select Swimmer</label>
+                          <label className="text-sm font-medium">{t.refereeDashboard.step3}</label>
                           <div className="space-y-2 max-h-48 overflow-y-auto">
                             {getSwimmersForTeam(selectedTeamForSwimmer).map(swimmer => (
                               <Button
@@ -474,11 +476,11 @@ export default function RefereeDashboard() {
                                 onClick={() => startSwimmerSession(swimmer, parseInt(selectedLane))}
                               >
                                 {swimmer.name}
-                                {swimmer.isUnder12 && <Badge variant="secondary" className="ml-2">Under 12</Badge>}
+                                {swimmer.isUnder12 && <Badge variant="secondary" className="ml-2">{t.refereeDashboard.underTwelve}</Badge>}
                               </Button>
                             ))}
                             {getSwimmersForTeam(selectedTeamForSwimmer).length === 0 && (
-                              <p className="text-sm text-muted-foreground">No swimmers in this team</p>
+                              <p className="text-sm text-muted-foreground">{t.refereeDashboard.noSwimmersInTeam}</p>
                             )}
                           </div>
                         </div>
@@ -494,14 +496,14 @@ export default function RefereeDashboard() {
               <Card>
                 <CardContent className="py-4">
                   <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium">Filter by Lane:</span>
+                    <span className="text-sm font-medium">{t.refereeDashboard.filterByLane}</span>
                     <div className="flex flex-wrap gap-2">
                       <Button
                         variant={laneFilter === 'all' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setLaneFilter('all')}
                       >
-                        All Lanes
+                        {t.refereeDashboard.allLanes}
                       </Button>
                       {Array.from({ length: selectedCompetition.numberOfLanes }, (_, i) => i + 1)
                         .filter(lane => activeSessions.some(s => s.laneNumber === lane))
@@ -512,7 +514,7 @@ export default function RefereeDashboard() {
                             size="sm"
                             onClick={() => setLaneFilter(lane.toString())}
                           >
-                            Lane {lane}
+                            {t.refereeDashboard.lane} {lane}
                           </Button>
                         ))}
                     </div>
@@ -537,10 +539,10 @@ export default function RefereeDashboard() {
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg">
                             <Waves className="h-5 w-5" />
-                            <span className="font-bold text-lg">Lane {lane}</span>
+                            <span className="font-bold text-lg">{t.refereeDashboard.lane} {lane}</span>
                           </div>
                           <div className="flex-1 h-1 bg-primary/20 rounded" />
-                          <Badge variant="secondary">{laneSessions.length} active</Badge>
+                          <Badge variant="secondary">{laneSessions.length} {t.refereeDashboard.active}</Badge>
                         </div>
                         
                         {/* Sessions for this lane */}
@@ -570,7 +572,7 @@ export default function RefereeDashboard() {
                                     onClick={() => endSwimmerSession(session)}
                                   >
                                     <UserX className="h-4 w-4 mr-1" />
-                                    End
+                                    {t.refereeDashboard.end}
                                   </Button>
                                 </div>
                               </CardHeader>
@@ -578,7 +580,7 @@ export default function RefereeDashboard() {
                                 <div className="flex items-center justify-between">
                                   <div className="text-4xl font-bold">
                                     {lapCounts[session.teamId] || 0}
-                                    <span className="text-lg font-normal text-muted-foreground ml-2">laps</span>
+                                    <span className="text-lg font-normal text-muted-foreground ml-2">{t.refereeDashboard.laps}</span>
                                   </div>
                                   <Button
                                     size="lg"
@@ -592,7 +594,7 @@ export default function RefereeDashboard() {
                                 </div>
                                 {selectedCompetition.status !== 'active' && (
                                   <p className="text-xs text-destructive mt-2">
-                                    Counting disabled - competition is {selectedCompetition.status}
+                                    {t.refereeDashboard.countingDisabled} {t.competition.status[selectedCompetition.status]}
                                   </p>
                                 )}
                               </CardContent>
@@ -610,8 +612,8 @@ export default function RefereeDashboard() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <Waves className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-lg text-muted-foreground">Register swimmers to start counting laps</p>
-                  <p className="text-sm text-muted-foreground">Each team can have one swimmer in the water at a time</p>
+                  <p className="text-lg text-muted-foreground">{t.refereeDashboard.registerToStart}</p>
+                  <p className="text-sm text-muted-foreground">{t.refereeDashboard.oneSwimmerPerTeam}</p>
                 </CardContent>
               </Card>
             )}

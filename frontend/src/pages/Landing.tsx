@@ -32,7 +32,7 @@ export default function Landing() {
                 <Link to="/register">{t.landing.getStarted}</Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
-                <Link to="/about">{t.landing.learnMore}</Link>
+                <Link to="/faq">{t.landing.learnMore}</Link>
               </Button>
             </div>
           </div>
@@ -110,65 +110,6 @@ export default function Landing() {
               </CardHeader>
             </Card>
           </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section className="py-20">
-        <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">{t.landing.howItWorksTitle}</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              {t.landing.howItWorksSubtitle}
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold">
-                1
-              </div>
-              <h3 className="text-xl font-semibold">{t.landing.step1Title}</h3>
-              <p className="text-muted-foreground">
-                {t.landing.step1Desc}
-              </p>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold">
-                2
-              </div>
-              <h3 className="text-xl font-semibold">{t.landing.step2Title}</h3>
-              <p className="text-muted-foreground">
-                {t.landing.step2Desc}
-              </p>
-            </div>
-
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto text-2xl font-bold">
-                3
-              </div>
-              <h3 className="text-xl font-semibold">{t.landing.step3Title}</h3>
-              <p className="text-muted-foreground">
-                {t.landing.step3Desc}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-primary text-primary-foreground">
-        <div className="container text-center space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            {t.landing.ctaTitle}
-          </h2>
-          <p className="text-primary-foreground/80 max-w-xl mx-auto">
-            {t.landing.ctaSubtitle}
-          </p>
-          <Button size="lg" variant="secondary" asChild>
-            <Link to="/register">{t.landing.startFree}</Link>
-          </Button>
         </div>
       </section>
     </MainLayout>

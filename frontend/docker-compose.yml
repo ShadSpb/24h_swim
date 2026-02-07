@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  swimtrack:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 24swim.de_frontend
+    # Configuration is now bundled at build time in src/config/config.json
+    # Edit the file and rebuild to change settings
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks: 
+      nginx:
+        ipv4_address: 10.200.0.8
+
+networks:
+  nginx:
+    name: nginx
+    external: true

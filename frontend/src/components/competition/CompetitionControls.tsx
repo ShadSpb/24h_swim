@@ -6,7 +6,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Competition, User } from '@/types';
 import { competitionStorage, refereeStorage, teamStorage, swimmerStorage, lapCountStorage } from '@/lib/storage';
 import { generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
-import { Play, Square, Clock, Pause } from 'lucide-react';
+import { Play, Square, Clock, Pause, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
 interface CompetitionControlsProps {
   competition: Competition;
   onUpdate: (competition: Competition) => void;
@@ -16,7 +18,26 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
   const { t } = useLanguage();
   const { toast } = useToast();
 
+  // Check prerequisites for starting competition
+  const teams = teamStorage.getByCompetition(competition.id);
+  const swimmers = swimmerStorage.getByCompetition(competition.id);
+  const referees = refereeStorage.getByCompetition(competition.id);
+
+  const hasTeams = teams.length > 0;
+  const hasSwimmers = swimmers.length > 0;
+  const hasReferees = referees.length > 0;
+  const canStart = hasTeams && hasSwimmers && hasReferees;
+
   const handleStart = () => {
+    if (!canStart) {
+      toast({ 
+        title: t.toast.cannotStart || 'Cannot start competition',
+        description: t.toast.missingRequirements || 'Please add teams, swimmers, and referees first',
+        variant: 'destructive'
+      });
+      return;
+    }
+    
     const updated: Competition = {
       ...competition,
       status: 'active',
@@ -108,6 +129,14 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
   const canPause = competition.status === 'active';
   const canFinish = competition.status === 'active' || competition.status === 'paused';
 
+  const getMissingRequirements = () => {
+    const missing: string[] = [];
+    if (!hasTeams) missing.push('Teams');
+    if (!hasSwimmers) missing.push('Swimmers');
+    if (!hasReferees) missing.push('Referees');
+    return missing;
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -125,11 +154,22 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Missing requirements warning */}
+        {competition.status === 'upcoming' && !canStart && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {t.toast.missingRequirements}: {getMissingRequirements().join(', ')}
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Manual Controls */}
         <div className="flex flex-wrap gap-3">
           {competition.status === 'upcoming' && (
             <Button
               onClick={handleStart}
+              disabled={!canStart}
               className="gap-2"
             >
               <Play className="h-4 w-4" />

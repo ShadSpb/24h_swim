@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
@@ -7,18 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { adminApi, AdminConfig, StorageConfig, ApiEndpointConfig } from '@/lib/api';
+import { adminApi, AdminConfig, StorageConfig } from '@/lib/api';
 import { 
   Settings, 
   Mail, 
   Shield, 
   Users, 
   BarChart3, 
-  AlertTriangle,
   Lock,
   Server,
   Eye,
@@ -26,13 +23,13 @@ import {
   Database,
   Cloud,
   HardDrive,
-  FileText
+  FileText,
+  Info
 } from 'lucide-react';
 
 export default function Admin() {
   const { t } = useLanguage();
   const { toast } = useToast();
-  const navigate = useNavigate();
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -46,11 +43,6 @@ export default function Admin() {
     plannedCompetitions: 0,
     completedCompetitions: 0,
   });
-
-  // Password change
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
   useEffect(() => {
     // Check if already logged in via session
@@ -90,32 +82,8 @@ export default function Admin() {
     setPassword('');
   };
 
-  const handleSaveConfig = async () => {
-    if (config) {
-      await adminApi.saveConfig(config);
-      toast({ title: t.toast.settingsSaved });
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      toast({ title: t.validation.passwordMismatch, variant: 'destructive' });
-      return;
-    }
-
-    const success = await adminApi.changeAdminPassword(oldPassword, newPassword);
-    if (success) {
-      toast({ title: t.toast.passwordChanged });
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } else {
-      toast({ title: t.auth.invalidCredentials, variant: 'destructive' });
-    }
-  };
-
   const handleTestEmail = async () => {
-    const success = await adminApi.sendTestEmail(config?.smtpFrom || 'test@example.com');
+    const success = await adminApi.sendTestEmail(config?.smtpFrom || 'test@24swim.de');
     if (success) {
       toast({ title: t.toast.emailSent });
     } else {
@@ -180,37 +148,41 @@ export default function Admin() {
   return (
     <MainLayout showFooter={false}>
       <div className="container py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold">{t.admin.title}</h1>
-            <p className="text-muted-foreground">admin</p>
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold">{t.admin.title}</h1>
+              <p className="text-muted-foreground">admin</p>
+            </div>
+            <Button variant="outline" onClick={handleLogout}>
+              {t.common.logout}
+            </Button>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            {t.common.logout}
-          </Button>
+
+          {/* Read-only notice */}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">
+            <Info className="h-4 w-4" />
+            <span>Configuration is read-only. Edit <code className="bg-background px-1 rounded">src/config/config.json</code> and rebuild to change settings.</span>
+          </div>
         </div>
 
         <Tabs defaultValue="stats" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
             <TabsTrigger value="stats" className="gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">{t.admin.competitionStats}</span>
             </TabsTrigger>
+            <TabsTrigger value="site" className="gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Site</span>
+            </TabsTrigger>
             <TabsTrigger value="storage" className="gap-2">
               <Database className="h-4 w-4" />
-              <span className="hidden sm:inline">Storage</span>
-            </TabsTrigger>
-            <TabsTrigger value="auth" className="gap-2">
-              <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.admin.authType}</span>
+              <span className="hidden sm:inline">Storage & API</span>
             </TabsTrigger>
             <TabsTrigger value="smtp" className="gap-2">
               <Mail className="h-4 w-4" />
               <span className="hidden sm:inline">SMTP</span>
-            </TabsTrigger>
-            <TabsTrigger value="maintenance" className="gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="hidden sm:inline">{t.admin.maintenance}</span>
             </TabsTrigger>
             <TabsTrigger value="password" className="gap-2">
               <Lock className="h-4 w-4" />
@@ -263,20 +235,49 @@ export default function Admin() {
             </div>
           </TabsContent>
 
+          {/* Site Configuration */}
+          <TabsContent value="site" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Site Configuration
+                </CardTitle>
+                <CardDescription>
+                  Site-wide settings (read-only)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="siteDomain">Site Domain</Label>
+                  <Input
+                    id="siteDomain"
+                    placeholder="https://yourdomain.com"
+                    value={config?.siteDomain || ''}
+                    disabled
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    The public URL where this site is hosted. Used for generating QR codes and share links.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Storage Settings */}
           <TabsContent value="storage" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Database className="h-5 w-5" />
-                  Storage Configuration
+                  Storage & API Configuration
                 </CardTitle>
                 <CardDescription>
-                  Choose between local browser storage or remote API for data persistence
+                  Current storage and API settings (read-only)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Storage Type Selection */}
+                {/* Storage Type Display */}
                 <div className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center gap-4">
                     <div className={`p-2 rounded-lg ${config?.storage.type === 'local' ? 'bg-primary/10' : 'bg-muted'}`}>
@@ -284,17 +285,12 @@ export default function Admin() {
                     </div>
                     <div>
                       <p className="font-medium">Local Storage</p>
-                      <p className="text-sm text-muted-foreground">Data stored in browser (default)</p>
+                      <p className="text-sm text-muted-foreground">Data stored in browser</p>
                     </div>
                   </div>
                   <Switch
                     checked={config?.storage.type === 'remote'}
-                    onCheckedChange={(checked) => 
-                      setConfig(prev => prev ? { 
-                        ...prev, 
-                        storage: { ...prev.storage, type: checked ? 'remote' : 'local' }
-                      } : null)
-                    }
+                    disabled
                   />
                   <div className="flex items-center gap-4">
                     <div className={`p-2 rounded-lg ${config?.storage.type === 'remote' ? 'bg-primary/10' : 'bg-muted'}`}>
@@ -302,16 +298,40 @@ export default function Admin() {
                     </div>
                     <div>
                       <p className="font-medium">Remote API</p>
-                      <p className="text-sm text-muted-foreground">Data stored on external server</p>
+                      <p className="text-sm text-muted-foreground">Data stored on server</p>
                     </div>
                   </div>
                 </div>
 
-                <Badge variant={config?.storage.type === 'local' ? 'secondary' : 'default'}>
-                  {config?.storage.type === 'local' ? 'Using Local Storage' : 'Using Remote API'}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={config?.storage.type === 'local' ? 'secondary' : 'default'}>
+                    {config?.storage.type === 'local' ? 'Using Local Storage' : 'Using Remote API'}
+                  </Badge>
+                  <Badge variant="outline" className="gap-1">
+                    <Shield className="h-3 w-3" />
+                    {config?.storage.type === 'remote' ? 'Auth via API' : t.admin.authBuiltIn}
+                  </Badge>
+                </div>
 
-                {/* Remote API Configuration */}
+                {/* Authentication Info */}
+                <div className="border rounded-lg p-4 space-y-3">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    Authentication Mode
+                  </h4>
+                  {config?.storage.type === 'remote' ? (
+                    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-sm">
+                      <strong>Remote API Mode:</strong> All authentication requests (login, register, password reset) 
+                      are routed through the configured API endpoints.
+                    </div>
+                  ) : (
+                    <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground">
+                      <strong>Built-in Mode:</strong> Authentication is handled locally using browser storage.
+                    </div>
+                  )}
+                </div>
+
+                {/* Remote API Configuration Display */}
                 {config?.storage.type === 'remote' && (
                   <div className="space-y-6 border-t pt-6">
                     <h4 className="font-medium flex items-center gap-2">
@@ -319,33 +339,18 @@ export default function Admin() {
                       API Configuration
                     </h4>
                     
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>Base URL</Label>
-                        <Input
-                          value={config.storage.baseUrl}
-                          onChange={(e) => setConfig(prev => prev ? { 
-                            ...prev, 
-                            storage: { ...prev.storage, baseUrl: e.target.value }
-                          } : null)}
-                          placeholder="https://api.yourserver.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>API Key</Label>
-                        <Input
-                          type="password"
-                          value={config.storage.apiKey}
-                          onChange={(e) => setConfig(prev => prev ? { 
-                            ...prev, 
-                            storage: { ...prev.storage, apiKey: e.target.value }
-                          } : null)}
-                          placeholder="Enter your API key"
-                        />
-                      </div>
+                    <div className="space-y-2">
+                      <Label>Base URL</Label>
+                      <Input
+                        value={config.storage.baseUrl}
+                        disabled
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Session tokens are generated per-user on login
+                      </p>
                     </div>
 
-                    {/* Endpoint Configuration */}
+                    {/* Endpoint Configuration Display */}
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium">API Endpoints</h4>
@@ -358,190 +363,83 @@ export default function Admin() {
                       </div>
                       
                       <div className="grid gap-4">
-                        {/* Competition Endpoints */}
-                        <div className="border rounded-lg p-4 space-y-3">
-                          <h5 className="text-sm font-medium text-muted-foreground">Competition Endpoints</h5>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Get Competitions</Label>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="shrink-0">GET</Badge>
-                                <Input
-                                  className="h-8 text-sm"
-                                  value={config.storage.endpoints.getCompetitions.url}
-                                  onChange={(e) => setConfig(prev => prev ? { 
-                                    ...prev, 
-                                    storage: { 
-                                      ...prev.storage, 
-                                      endpoints: { 
-                                        ...prev.storage.endpoints, 
-                                        getCompetitions: { ...prev.storage.endpoints.getCompetitions, url: e.target.value }
-                                      }
-                                    }
-                                  } : null)}
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Save Competition</Label>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="shrink-0">POST</Badge>
-                                <Input
-                                  className="h-8 text-sm"
-                                  value={config.storage.endpoints.saveCompetition.url}
-                                  onChange={(e) => setConfig(prev => prev ? { 
-                                    ...prev, 
-                                    storage: { 
-                                      ...prev.storage, 
-                                      endpoints: { 
-                                        ...prev.storage.endpoints, 
-                                        saveCompetition: { ...prev.storage.endpoints.saveCompetition, url: e.target.value }
-                                      }
-                                    }
-                                  } : null)}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Team & Swimmer Endpoints */}
-                        <div className="border rounded-lg p-4 space-y-3">
-                          <h5 className="text-sm font-medium text-muted-foreground">Team & Swimmer Endpoints</h5>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Get Teams</Label>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="shrink-0">GET</Badge>
-                                <Input
-                                  className="h-8 text-sm"
-                                  value={config.storage.endpoints.getTeams.url}
-                                  onChange={(e) => setConfig(prev => prev ? { 
-                                    ...prev, 
-                                    storage: { 
-                                      ...prev.storage, 
-                                      endpoints: { 
-                                        ...prev.storage.endpoints, 
-                                        getTeams: { ...prev.storage.endpoints.getTeams, url: e.target.value }
-                                      }
-                                    }
-                                  } : null)}
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Get Swimmers</Label>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="shrink-0">GET</Badge>
-                                <Input
-                                  className="h-8 text-sm"
-                                  value={config.storage.endpoints.getSwimmers.url}
-                                  onChange={(e) => setConfig(prev => prev ? { 
-                                    ...prev, 
-                                    storage: { 
-                                      ...prev.storage, 
-                                      endpoints: { 
-                                        ...prev.storage.endpoints, 
-                                        getSwimmers: { ...prev.storage.endpoints.getSwimmers, url: e.target.value }
-                                      }
-                                    }
-                                  } : null)}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Lap Counting Endpoints */}
-                        <div className="border rounded-lg p-4 space-y-3">
-                          <h5 className="text-sm font-medium text-muted-foreground">Lap Counting Endpoints</h5>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="space-y-1">
-                              <Label className="text-xs">Get Lap Counts</Label>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="shrink-0">GET</Badge>
-                                <Input
-                                  className="h-8 text-sm"
-                                  value={config.storage.endpoints.getLapCounts.url}
-                                  onChange={(e) => setConfig(prev => prev ? { 
-                                    ...prev, 
-                                    storage: { 
-                                      ...prev.storage, 
-                                      endpoints: { 
-                                        ...prev.storage.endpoints, 
-                                        getLapCounts: { ...prev.storage.endpoints.getLapCounts, url: e.target.value }
-                                      }
-                                    }
-                                  } : null)}
-                                />
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs">Add Lap Count</Label>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="shrink-0">POST</Badge>
-                                <Input
-                                  className="h-8 text-sm"
-                                  value={config.storage.endpoints.addLapCount.url}
-                                  onChange={(e) => setConfig(prev => prev ? { 
-                                    ...prev, 
-                                    storage: { 
-                                      ...prev.storage, 
-                                      endpoints: { 
-                                        ...prev.storage.endpoints, 
-                                        addLapCount: { ...prev.storage.endpoints.addLapCount, url: e.target.value }
-                                      }
-                                    }
-                                  } : null)}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
                         {/* Authentication Endpoints */}
-                        <div className="border rounded-lg p-4 space-y-3">
-                          <h5 className="text-sm font-medium text-muted-foreground">Authentication Endpoints</h5>
+                        <div className="border rounded-lg p-4 space-y-3 border-primary/30 bg-primary/5">
+                          <h5 className="text-sm font-medium flex items-center gap-2">
+                            <Shield className="h-4 w-4 text-primary" />
+                            Authentication Endpoints
+                          </h5>
                           <div className="grid gap-3 md:grid-cols-2">
                             <div className="space-y-1">
                               <Label className="text-xs">Login</Label>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="shrink-0">POST</Badge>
-                                <Input
-                                  className="h-8 text-sm"
-                                  value={config.storage.endpoints.login.url}
-                                  onChange={(e) => setConfig(prev => prev ? { 
-                                    ...prev, 
-                                    storage: { 
-                                      ...prev.storage, 
-                                      endpoints: { 
-                                        ...prev.storage.endpoints, 
-                                        login: { ...prev.storage.endpoints.login, url: e.target.value }
-                                      }
-                                    }
-                                  } : null)}
-                                />
-                              </div>
+                              <Input
+                                className="h-8 text-sm"
+                                value={config.storage.endpoints.login}
+                                disabled
+                              />
                             </div>
                             <div className="space-y-1">
                               <Label className="text-xs">Register</Label>
-                              <div className="flex gap-2">
-                                <Badge variant="outline" className="shrink-0">POST</Badge>
-                                <Input
-                                  className="h-8 text-sm"
-                                  value={config.storage.endpoints.register.url}
-                                  onChange={(e) => setConfig(prev => prev ? { 
-                                    ...prev, 
-                                    storage: { 
-                                      ...prev.storage, 
-                                      endpoints: { 
-                                        ...prev.storage.endpoints, 
-                                        register: { ...prev.storage.endpoints.register, url: e.target.value }
-                                      }
-                                    }
-                                  } : null)}
-                                />
-                              </div>
+                              <Input
+                                className="h-8 text-sm"
+                                value={config.storage.endpoints.register}
+                                disabled
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Resource Endpoints */}
+                        <div className="border rounded-lg p-4 space-y-3">
+                          <h5 className="text-sm font-medium text-muted-foreground">Resource Endpoints (RESTful)</h5>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <div className="space-y-1">
+                              <Label className="text-xs">Competitions</Label>
+                              <Input
+                                className="h-8 text-sm"
+                                value={config.storage.endpoints.competitions}
+                                disabled
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Teams</Label>
+                              <Input
+                                className="h-8 text-sm"
+                                value={config.storage.endpoints.teams}
+                                disabled
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Swimmers</Label>
+                              <Input
+                                className="h-8 text-sm"
+                                value={config.storage.endpoints.swimmers}
+                                disabled
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Referees</Label>
+                              <Input
+                                className="h-8 text-sm"
+                                value={config.storage.endpoints.referees}
+                                disabled
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Lap Counts</Label>
+                              <Input
+                                className="h-8 text-sm"
+                                value={config.storage.endpoints.lapCounts}
+                                disabled
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">Swim Sessions</Label>
+                              <Input
+                                className="h-8 text-sm"
+                                value={config.storage.endpoints.swimSessions}
+                                disabled
+                              />
                             </div>
                           </div>
                         </div>
@@ -549,52 +447,6 @@ export default function Admin() {
                     </div>
                   </div>
                 )}
-
-                <Button onClick={handleSaveConfig}>{t.common.save}</Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Authentication Settings */}
-          <TabsContent value="auth" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t.admin.authType}</CardTitle>
-                <CardDescription>
-                  Configure authentication method
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t.admin.authType}</Label>
-                  <Select
-                    value={config?.authType || 'builtin'}
-                    onValueChange={(value: 'builtin' | 'external') => 
-                      setConfig(prev => prev ? { ...prev, authType: value } : null)
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="builtin">{t.admin.authBuiltIn}</SelectItem>
-                      <SelectItem value="external">{t.admin.authExternal}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {config?.authType === 'external' && (
-                  <div className="space-y-2">
-                    <Label>{t.admin.backendUrl}</Label>
-                    <Input
-                      value={config.backendUrl}
-                      onChange={(e) => setConfig(prev => prev ? { ...prev, backendUrl: e.target.value } : null)}
-                      placeholder="https://api.example.com"
-                    />
-                  </div>
-                )}
-
-                <Button onClick={handleSaveConfig}>{t.common.save}</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -605,7 +457,7 @@ export default function Admin() {
               <CardHeader>
                 <CardTitle>{t.admin.smtpConfig}</CardTitle>
                 <CardDescription>
-                  Configure email sending for notifications
+                  Email server settings (read-only)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -614,8 +466,7 @@ export default function Admin() {
                     <Label>{t.admin.smtpHost}</Label>
                     <Input
                       value={config?.smtpHost || ''}
-                      onChange={(e) => setConfig(prev => prev ? { ...prev, smtpHost: e.target.value } : null)}
-                      placeholder="smtp.example.com"
+                      disabled
                     />
                   </div>
                   <div className="space-y-2">
@@ -623,22 +474,22 @@ export default function Admin() {
                     <Input
                       type="number"
                       value={config?.smtpPort || 587}
-                      onChange={(e) => setConfig(prev => prev ? { ...prev, smtpPort: parseInt(e.target.value) } : null)}
+                      disabled
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>{t.admin.smtpUser}</Label>
                     <Input
                       value={config?.smtpUser || ''}
-                      onChange={(e) => setConfig(prev => prev ? { ...prev, smtpUser: e.target.value } : null)}
+                      disabled
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>{t.admin.smtpPassword}</Label>
                     <Input
                       type="password"
-                      value={config?.smtpPassword || ''}
-                      onChange={(e) => setConfig(prev => prev ? { ...prev, smtpPassword: e.target.value } : null)}
+                      value={config?.smtpPassword ? '••••••••' : ''}
+                      disabled
                     />
                   </div>
                   <div className="space-y-2 md:col-span-2">
@@ -646,8 +497,7 @@ export default function Admin() {
                     <Input
                       type="email"
                       value={config?.smtpFrom || ''}
-                      onChange={(e) => setConfig(prev => prev ? { ...prev, smtpFrom: e.target.value } : null)}
-                      placeholder="noreply@example.com"
+                      disabled
                     />
                   </div>
                 </div>
@@ -659,87 +509,36 @@ export default function Admin() {
                       <Label>{t.admin.emailOrganizerRegistration}</Label>
                       <Switch
                         checked={config?.emailNotifications.organizerRegistration || false}
-                        onCheckedChange={(checked) => 
-                          setConfig(prev => prev ? { 
-                            ...prev, 
-                            emailNotifications: { ...prev.emailNotifications, organizerRegistration: checked }
-                          } : null)
-                        }
+                        disabled
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label>{t.admin.emailPasswordReset}</Label>
                       <Switch
                         checked={config?.emailNotifications.passwordReset || false}
-                        onCheckedChange={(checked) => 
-                          setConfig(prev => prev ? { 
-                            ...prev, 
-                            emailNotifications: { ...prev.emailNotifications, passwordReset: checked }
-                          } : null)
-                        }
+                        disabled
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label>{t.admin.emailCompetitionResult}</Label>
                       <Switch
                         checked={config?.emailNotifications.competitionResult || false}
-                        onCheckedChange={(checked) => 
-                          setConfig(prev => prev ? { 
-                            ...prev, 
-                            emailNotifications: { ...prev.emailNotifications, competitionResult: checked }
-                          } : null)
-                        }
+                        disabled
                       />
                     </div>
                     <div className="flex items-center justify-between">
                       <Label>{t.admin.emailFaqFeedback}</Label>
                       <Switch
                         checked={config?.emailNotifications.faqFeedback || false}
-                        onCheckedChange={(checked) => 
-                          setConfig(prev => prev ? { 
-                            ...prev, 
-                            emailNotifications: { ...prev.emailNotifications, faqFeedback: checked }
-                          } : null)
-                        }
+                        disabled
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="flex gap-2 pt-4">
-                  <Button onClick={handleSaveConfig}>{t.common.save}</Button>
                   <Button variant="outline" onClick={handleTestEmail}>{t.admin.testEmail}</Button>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Maintenance Mode */}
-          <TabsContent value="maintenance" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  {t.admin.maintenance}
-                </CardTitle>
-                <CardDescription>
-                  Enable maintenance mode to prevent access to all pages
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{t.admin.enableMaintenance}</p>
-                    <p className="text-sm text-muted-foreground">{t.admin.maintenanceMessage}</p>
-                  </div>
-                  <Switch
-                    checked={config?.maintenanceMode || false}
-                    onCheckedChange={(checked) => 
-                      setConfig(prev => prev ? { ...prev, maintenanceMode: checked } : null)
-                    }
-                  />
-                </div>
-                <Button onClick={handleSaveConfig}>{t.common.save}</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -749,33 +548,17 @@ export default function Admin() {
             <Card className="max-w-md">
               <CardHeader>
                 <CardTitle>{t.admin.changePassword}</CardTitle>
+                <CardDescription>
+                  Password stored in <code className="bg-muted px-1 rounded">src/config/config.json</code>
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>{t.admin.currentPassword}</Label>
-                  <Input
-                    type="password"
-                    value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                  />
+                {/* Read-only notice */}
+                <div className="bg-muted/50 border border-border rounded-lg p-3 text-sm text-muted-foreground">
+                  <strong>Read-only:</strong> Edit <code className="bg-background px-1 rounded">src/config/config.json</code> and rebuild to change admin password.
+                  <br /><br />
+                  Look for: <code className="bg-background px-1 rounded">"admin": {"{"} "passwordHash": "..." {"}"}</code>
                 </div>
-                <div className="space-y-2">
-                  <Label>{t.admin.newPassword}</Label>
-                  <Input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>{t.admin.confirmPassword}</Label>
-                  <Input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-                <Button onClick={handleChangePassword}>{t.common.save}</Button>
               </CardContent>
             </Card>
           </TabsContent>
