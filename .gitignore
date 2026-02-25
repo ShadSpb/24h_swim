@@ -326,6 +326,6 @@ docs/.vitepress/dist
 # https://github.com/github/gitignore/blob/master/Global/macOS.gitignore
 .DS_Store
 
-./backend/swimtrack.db
+./24h_swim/backend/swimtrack.db
 ./backend/swimtrack.db-shm
 ./backend/swimtrack.db-wal
