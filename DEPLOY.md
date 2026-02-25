@@ -3,10 +3,10 @@
 ## Prerequisites
 
 - Docker + Docker Compose v2
-- External Docker network `nginx` already created
+- External Docker network `nginx-network` already created
 
 ```bash
-docker network ls | grep nginx || docker network create --subnet=10.200.0.0/24 nginx
+docker network ls | grep nginx-network || docker network create --subnet=10.200.0.0/24 nginx-network
 ```
 
 ## Configure Frontend API Endpoint
@@ -30,7 +30,7 @@ docker compose -f docker-compose.yml up -d --build
 - Frontend: `10.200.0.8`
 - Backend API: `10.200.0.9:5000`
 
-Both are attached to external `nginx` network for reverse proxy routing.
+Both are attached to external `nginx-network` network for reverse proxy routing.
 
 ## Update
 
