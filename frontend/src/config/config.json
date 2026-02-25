@@ -1,0 +1,38 @@
+{
+  "site": {
+    "domain": "https://24swim.de"
+  },
+  "smtp": {
+    "host": "smtp.24swim.de",
+    "port": 587,
+    "user": "24swimde",
+    "password": "24swimdeP@ssw0rd01875543",
+    "from": "welcome@24swim.de"
+  },
+  "storage": {
+    "type": "remote",
+    "baseUrl": "https://api.24swim.de",
+    "endpoints": {
+      "competitions": "/competitions",
+      "teams": "/teams",
+      "swimmers": "/swimmers",
+      "referees": "/referees",
+      "lapCounts": "/lap-counts",
+      "swimSessions": "/swim-sessions",
+      "login": "/auth/login",
+      "register": "/auth/register"
+    }
+  },
+  "maintenance": {
+    "enabled": false
+  },
+  "emailNotifications": {
+    "organizerRegistration": true,
+    "passwordReset": true,
+    "competitionResult": true,
+    "faqFeedback": true
+  },
+  "admin": {
+    "passwordHash": "03bb8694d3f6abbcc258ca5c94776db51eb9d336bc584bb6ca56f1e7497e5c8d"
+  }
+}

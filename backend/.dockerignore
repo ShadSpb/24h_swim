@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+.git
+.gitignore
+.DS_Store
+venv
+.venv
+swimtrack.db
+swimtrack.db-wal
+swimtrack.db-shm
+database.db
+test_e2e.py
+README.md
+docker-compose.yml
