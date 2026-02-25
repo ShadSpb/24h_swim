@@ -3,7 +3,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Waves, Timer, Users, Trophy, ClipboardCheck, BarChart3 } from 'lucide-react';
+import { Waves, Users, Trophy, ClipboardCheck, BarChart3 } from 'lucide-react';
 
 export default function Landing() {
   const { t } = useLanguage();
@@ -49,17 +49,7 @@ export default function Landing() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <Timer className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>{t.landing.realTimeTracking}</CardTitle>
-                <CardDescription>
-                  {t.landing.realTimeTrackingDesc}
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
             <Card className="border-none shadow-lg">
               <CardHeader>
                 <Users className="h-10 w-10 text-primary mb-2" />
@@ -100,15 +90,6 @@ export default function Landing() {
               </CardHeader>
             </Card>
 
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <Waves className="h-10 w-10 text-primary mb-2" />
-                <CardTitle>{t.landing.multiLaneSupport}</CardTitle>
-                <CardDescription>
-                  {t.landing.multiLaneSupportDesc}
-                </CardDescription>
-              </CardHeader>
-            </Card>
           </div>
         </div>
       </section>

@@ -184,7 +184,7 @@ export default function Login() {
                           type="button"
                           variant="link"
                           className="px-0 h-auto font-normal text-sm text-muted-foreground hover:text-primary"
-                          onClick={() => setShowForgotPassword(true)}
+                          onClick={() => setShowForgotPassword(false)}
                         >
                           {t.auth.forgotPassword}
                         </Button>

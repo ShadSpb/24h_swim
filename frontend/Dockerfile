@@ -5,18 +5,6 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY bun.lockb ./
-
-# Install dependencies
-RUN npm install
-
-# Install Audit fix deps
-RUN npm audit fix --force
-
-# Install Audit fix deps 2
-RUN npm audit fix --force
-
-# Install dependencies
 RUN npm ci
 
 # Copy source code
@@ -30,8 +18,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install serve globally
-RUN npm install -g serve
+# Install serve + wget for healthcheck
+RUN apk add --no-cache wget \
+    && npm install -g serve
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist ./dist

@@ -13,7 +13,6 @@ import Register from "./pages/Register";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
 import RefereeDashboard from "./pages/RefereeDashboard";
 import Monitor from "./pages/Monitor";
-import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,7 +37,6 @@ const App = () => (
               <Route path="/referee" element={<RefereeDashboard />} />
               <Route path="/monitor" element={<Monitor />} />
               <Route path="/monitor/:competitionId" element={<Monitor />} />
-              <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

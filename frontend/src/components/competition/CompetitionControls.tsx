@@ -1,11 +1,12 @@
+import { useEffect, useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Competition, User } from '@/types';
-import { competitionStorage, refereeStorage, teamStorage, swimmerStorage, lapCountStorage } from '@/lib/storage';
-import { generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
+import { Competition } from '@/types';
+import { dataApi } from '@/lib/api';
+import { downloadPDF, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
 import { Play, Square, Clock, Pause, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -18,95 +19,137 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
   const { t } = useLanguage();
   const { toast } = useToast();
 
-  // Check prerequisites for starting competition
-  const teams = teamStorage.getByCompetition(competition.id);
-  const swimmers = swimmerStorage.getByCompetition(competition.id);
-  const referees = refereeStorage.getByCompetition(competition.id);
+  const [hasTeams, setHasTeams] = useState(false);
+  const [hasSwimmers, setHasSwimmers] = useState(false);
+  const [hasReferees, setHasReferees] = useState(false);
 
-  const hasTeams = teams.length > 0;
-  const hasSwimmers = swimmers.length > 0;
-  const hasReferees = referees.length > 0;
+  useEffect(() => {
+    let cancelled = false;
+    const loadRequirements = async () => {
+      try {
+        const [teams, swimmers, referees] = await Promise.all([
+          dataApi.getTeamsByCompetition(competition.id),
+          dataApi.getSwimmersByCompetition(competition.id),
+          dataApi.getRefereesByCompetition(competition.id),
+        ]);
+        if (!cancelled) {
+          setHasTeams(teams.length > 0);
+          setHasSwimmers(swimmers.length > 0);
+          setHasReferees(referees.length > 0);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setHasTeams(false);
+          setHasSwimmers(false);
+          setHasReferees(false);
+        }
+      }
+    };
+
+    void loadRequirements();
+    return () => { cancelled = true; };
+  }, [competition.id, competition.status]);
+
   const canStart = hasTeams && hasSwimmers && hasReferees;
 
-  const handleStart = () => {
-    if (!canStart) {
-      toast({ 
-        title: t.toast.cannotStart || 'Cannot start competition',
-        description: t.toast.missingRequirements || 'Please add teams, swimmers, and referees first',
-        variant: 'destructive'
-      });
-      return;
-    }
-    
-    const updated: Competition = {
-      ...competition,
-      status: 'active',
-      actualStartTime: new Date().toISOString(),
-    };
-    competitionStorage.save(updated);
-    onUpdate(updated);
-    toast({ title: t.toast.competitionStarted });
-  };
-
-  const handlePause = () => {
-    const updated: Competition = {
-      ...competition,
-      status: 'paused',
-    };
-    competitionStorage.save(updated);
-    onUpdate(updated);
-    toast({ title: t.toast.competitionPaused || 'Competition paused' });
-  };
-
-  const handleResume = () => {
-    const updated: Competition = {
-      ...competition,
-      status: 'active',
-    };
-    competitionStorage.save(updated);
-    onUpdate(updated);
-    toast({ title: t.toast.competitionResumed || 'Competition resumed' });
-  };
-
-  const handleFinish = () => {
-    // Get all data for PDF generation
-    const teams = teamStorage.getByCompetition(competition.id);
-    const swimmers = swimmerStorage.getByCompetition(competition.id);
-    const lapCounts = lapCountStorage.getByCompetition(competition.id);
-    
-    // Generate PDF with results
-    const pdfDataUri = generateCompetitionResultsPDF(competition, teams, swimmers, lapCounts);
-    
-    // Remove all referees for this competition
-    const referees = refereeStorage.getByCompetition(competition.id);
-    const USERS_KEY = 'swimtrack_users';
-    const AUTH_KEY = 'swimtrack_auth';
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]') as User[];
-    
-    referees.forEach(referee => {
-      // Remove user account
-      const filteredUsers = users.filter(u => u.email !== referee.userId);
-      localStorage.setItem(USERS_KEY, JSON.stringify(filteredUsers));
-      
-      // Clear session if referee is logged in
-      const currentAuth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
-      if (currentAuth.user?.email === referee.userId) {
-        localStorage.removeItem(AUTH_KEY);
+  const handleStart = async () => {
+    try {
+      if (!canStart) {
+        toast({
+          title: t.toast.cannotStart || 'Cannot start competition',
+          description: t.toast.missingRequirements || 'Please add teams, swimmers, and referees first',
+          variant: 'destructive'
+        });
+        return;
       }
-      
-      // Delete referee record
-      refereeStorage.delete(referee.id);
-    });
-    
-    const updated: Competition = {
-      ...competition,
-      status: 'completed',
-      actualEndTime: new Date().toISOString(),
-      resultsPdf: pdfDataUri,
-    };
-    competitionStorage.save(updated);
-    onUpdate(updated);
-    toast({ title: t.toast.competitionFinished, description: 'Results PDF has been generated' });
+
+      const updated: Competition = {
+        ...competition,
+        status: 'active',
+        actualStartTime: new Date().toISOString(),
+      };
+      await dataApi.saveCompetition(updated);
+      onUpdate(updated);
+      toast({ title: t.toast.competitionStarted });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start competition';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
+  const handlePause = async () => {
+    try {
+      const updated: Competition = {
+        ...competition,
+        status: 'paused',
+      };
+      await dataApi.saveCompetition(updated);
+      onUpdate(updated);
+      toast({ title: t.toast.competitionPaused || 'Competition paused' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to pause competition';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
+  const handleResume = async () => {
+    try {
+      const updated: Competition = {
+        ...competition,
+        status: 'active',
+      };
+      await dataApi.saveCompetition(updated);
+      onUpdate(updated);
+      toast({ title: t.toast.competitionResumed || 'Competition resumed' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resume competition';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
+  const handleFinish = async () => {
+    try {
+      // Get all data for PDF generation
+      const [teams, swimmers, lapCounts] = await Promise.all([
+        dataApi.getTeamsByCompetition(competition.id),
+        dataApi.getSwimmersByCompetition(competition.id),
+        dataApi.getLapCountsByCompetition(competition.id),
+      ]);
+
+      // Generate PDF with results
+      const pdfDataUri = generateCompetitionResultsPDF(competition, teams, swimmers, lapCounts);
+      const filename = `${competition.name.replace(/\s+/g, '_')}_results.pdf`;
+      downloadPDF(pdfDataUri, filename);
+
+      const updated: Competition = {
+        ...competition,
+        status: 'completed',
+        actualEndTime: new Date().toISOString(),
+        resultsPdf: pdfDataUri,
+      };
+      try {
+        await dataApi.saveCompetition(updated);
+      } catch (saveError) {
+        // If backend rejects storing the PDF payload, still complete competition.
+        const fallbackUpdate: Competition = {
+          ...updated,
+          resultsPdf: undefined,
+        };
+        await dataApi.saveCompetition(fallbackUpdate);
+        onUpdate(fallbackUpdate);
+        toast({
+          title: t.toast.competitionFinished,
+          description: 'Results PDF was downloaded, but could not be saved on server.',
+        });
+        return;
+      }
+
+      onUpdate(updated);
+      toast({ title: t.toast.competitionFinished, description: 'Results PDF has been generated' });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to finish competition';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
   };
 
   const getStatusBadge = () => {
@@ -168,7 +211,7 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
         <div className="flex flex-wrap gap-3">
           {competition.status === 'upcoming' && (
             <Button
-              onClick={handleStart}
+              onClick={() => { void handleStart(); }}
               disabled={!canStart}
               className="gap-2"
             >
@@ -179,7 +222,7 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
 
           {competition.status === 'paused' && (
             <Button
-              onClick={handleResume}
+              onClick={() => { void handleResume(); }}
               className="gap-2"
             >
               <Play className="h-4 w-4" />
@@ -189,7 +232,7 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
 
           {canPause && (
             <Button
-              onClick={handlePause}
+              onClick={() => { void handlePause(); }}
               variant="outline"
               className="gap-2"
             >
@@ -199,7 +242,7 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
           )}
 
           <Button
-            onClick={handleFinish}
+            onClick={() => { void handleFinish(); }}
             disabled={!canFinish}
             variant="secondary"
             className="gap-2"

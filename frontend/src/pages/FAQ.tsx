@@ -62,11 +62,6 @@ export default function FAQ() {
                   <AccordionContent>{t.about.noWarrantyDesc}</AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="about-mission">
-                  <AccordionTrigger>{t.about.ourMission}</AccordionTrigger>
-                  <AccordionContent>{t.about.ourMissionDesc}</AccordionContent>
-                </AccordionItem>
-
                 <AccordionItem value="about-features">
                   <AccordionTrigger>{t.about.keyFeatures}</AccordionTrigger>
                   <AccordionContent>{t.about.keyFeaturesDesc}</AccordionContent>
@@ -122,6 +117,12 @@ export default function FAQ() {
                   <AccordionTrigger>{t.faq.q10}</AccordionTrigger>
                   <AccordionContent>{t.faq.a10}</AccordionContent>
                 </AccordionItem>
+
+                <AccordionItem value="faq-11">
+                  <AccordionTrigger>{t.faq.q11}</AccordionTrigger>
+                  <AccordionContent>{t.faq.a11}</AccordionContent>
+                </AccordionItem>
+
               </Accordion>
             </CardContent>
           </Card>

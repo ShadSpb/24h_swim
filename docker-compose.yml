@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  swimtrack_api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: 24swim.de_backend
+    restart: unless-stopped
+    environment:
+      SWIMTRACK_HOST: 0.0.0.0
+      SWIMTRACK_PORT: 5000
+      SWIMTRACK_DB: /data/swimtrack.db
+    volumes:
+      - type: bind
+        source: /data
+        target: /data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      nginx:
+        ipv4_address: 10.200.0.9
+
+  swimtrack:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: 24swim.de_frontend
+    restart: unless-stopped
+    depends_on:
+      swimtrack_api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      nginx:
+        ipv4_address: 10.200.0.8
+
+networks:
+  nginx:
+    name: nginx
+    external: true

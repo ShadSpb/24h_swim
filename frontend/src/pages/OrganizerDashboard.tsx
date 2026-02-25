@@ -11,9 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Competition, Team, Swimmer, Referee, User } from '@/types';
-import { competitionStorage, teamStorage, swimmerStorage, refereeStorage, laneAssignmentStorage, lapCountStorage, swimSessionStorage, LaneAssignment } from '@/lib/storage';
+import { dataApi, getSessionToken, getStorageConfig, isRemoteMode } from '@/lib/api';
 import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText } from 'lucide-react';
-import { format } from 'date-fns';
 import { CompetitionControls } from '@/components/competition/CompetitionControls';
 import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/utils/password';
 import { downloadPDF } from '@/lib/utils/pdfGenerator';
@@ -42,13 +41,13 @@ export default function OrganizerDashboard() {
       navigate('/login');
       return;
     }
-    loadCompetitions();
+    void loadCompetitions();
   }, [isAuthenticated, user, navigate]);
 
-  const loadCompetitions = () => {
+  const loadCompetitions = async () => {
     if (user) {
       try {
-        const userCompetitions = competitionStorage.getByOrganizer(user.id);
+        const userCompetitions = await dataApi.getCompetitionsByOrganizer(user.id);
         setCompetitions(userCompetitions);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Failed to load competitions';
@@ -58,19 +57,24 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const loadCompetitionData = (competition: Competition) => {
+  const loadCompetitionData = async (competition: Competition) => {
     try {
       setSelectedCompetition(competition);
-      setTeams(teamStorage.getByCompetition(competition.id));
-      setSwimmers(swimmerStorage.getByCompetition(competition.id));
-      setReferees(refereeStorage.getByCompetition(competition.id));
+      const [competitionTeams, competitionSwimmers, competitionReferees] = await Promise.all([
+        dataApi.getTeamsByCompetition(competition.id),
+        dataApi.getSwimmersByCompetition(competition.id),
+        dataApi.getRefereesByCompetition(competition.id),
+      ]);
+      setTeams(competitionTeams);
+      setSwimmers(competitionSwimmers);
+      setReferees(competitionReferees);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load competition data';
       toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     }
   };
 
-  const handleCreateCompetition = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateCompetition = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
@@ -112,26 +116,8 @@ export default function OrganizerDashboard() {
         createdAt: editingCompetition?.createdAt || new Date().toISOString(),
       };
 
-      competitionStorage.save(competition);
-      
-      // Initialize lane assignments if new competition
-      if (!editingCompetition) {
-        for (let i = 1; i <= competition.numberOfLanes; i++) {
-          const laneAssignment: LaneAssignment = {
-            id: crypto.randomUUID(),
-            competitionId: competition.id,
-            laneNumber: i,
-            refereeId: null,
-            activeSwimmerId: null,
-            registeredAt: null,
-            startTime: null,
-            endTime: null,
-          };
-          laneAssignmentStorage.save(laneAssignment);
-        }
-      }
-
-      loadCompetitions();
+      await dataApi.saveCompetition(competition);
+      await loadCompetitions();
       setShowCompetitionDialog(false);
       setEditingCompetition(null);
       toast({ title: editingCompetition ? 'Competition updated' : 'Competition created' });
@@ -141,7 +127,7 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const handleCreateTeam = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateTeam = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedCompetition) return;
     
@@ -151,7 +137,7 @@ export default function OrganizerDashboard() {
       const color = formData.get('color') as string;
 
       // Check for duplicate color on same lane
-      const existingTeams = teamStorage.getByLane(selectedCompetition.id, lane);
+      const existingTeams = await dataApi.getTeamsByLane(selectedCompetition.id, lane);
       if (existingTeams.some(t => t.color === color && t.id !== editingTeam?.id)) {
         toast({ title: 'Color conflict', description: 'Two teams on the same lane cannot have the same color', variant: 'destructive' });
         return;
@@ -166,8 +152,8 @@ export default function OrganizerDashboard() {
         createdAt: editingTeam?.createdAt || new Date().toISOString(),
       };
 
-      teamStorage.save(team);
-      loadCompetitionData(selectedCompetition);
+      await dataApi.saveTeam(team);
+      await loadCompetitionData(selectedCompetition);
       setShowTeamDialog(false);
       setEditingTeam(null);
       toast({ title: editingTeam ? 'Team updated' : 'Team created' });
@@ -177,7 +163,7 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const handleCreateSwimmer = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateSwimmer = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedCompetition) return;
     
@@ -194,8 +180,8 @@ export default function OrganizerDashboard() {
         createdAt: new Date().toISOString(),
       };
 
-      swimmerStorage.save(swimmer);
-      loadCompetitionData(selectedCompetition);
+      await dataApi.saveSwimmer(swimmer);
+      await loadCompetitionData(selectedCompetition);
       setShowSwimmerDialog(false);
       toast({ title: 'Swimmer added' });
     } catch (error) {
@@ -211,6 +197,47 @@ export default function OrganizerDashboard() {
     if (!selectedCompetition) return;
     
     try {
+      if (isRemoteMode()) {
+        const storage = getStorageConfig();
+        const url = `${storage.baseUrl}${storage.endpoints.referees}`;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        const sessionToken = getSessionToken();
+        if (sessionToken) {
+          headers['Authorization'] = `Bearer ${sessionToken}`;
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ competitionId: selectedCompetition.id }),
+        });
+
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(body?.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const createdReferee = body?.data ?? body;
+        const userId = createdReferee?.userId ?? createdReferee?.uniqueId;
+        const password = createdReferee?.password;
+
+        if (!userId || !password) {
+          throw new Error('Backend did not return referee credentials (userId/password).');
+        }
+
+        setNewRefereeCredentials({ userId, password });
+        await loadCompetitionData(selectedCompetition);
+
+        toast({
+          title: 'Referee added',
+          description: `Login ID: ${userId}`,
+        });
+        return;
+      }
+
       // Generate a referee ID and password immediately
       const refUserId = generateRefereeId();
       const password = generateHumanPassword();
@@ -241,8 +268,8 @@ export default function OrganizerDashboard() {
         localStorage.setItem(USERS_KEY, JSON.stringify(users));
       }
 
-      refereeStorage.save(referee);
-      loadCompetitionData(selectedCompetition);
+      await dataApi.saveReferee(referee);
+      await loadCompetitionData(selectedCompetition);
       
       // Show credentials immediately (plain text for user to see)
       setNewRefereeCredentials({ userId: refUserId, password });
@@ -259,12 +286,46 @@ export default function OrganizerDashboard() {
 
   const handleResetRefereePassword = async (referee: Referee) => {
     try {
+      if (isRemoteMode()) {
+        const storage = getStorageConfig();
+        const url = `${storage.baseUrl}${storage.endpoints.referees}/${referee.id}/reset-password`;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        const sessionToken = getSessionToken();
+        if (sessionToken) {
+          headers['Authorization'] = `Bearer ${sessionToken}`;
+        }
+
+        const response = await fetch(url, {
+          method: 'POST',
+          headers,
+        });
+
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(body?.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const newPassword = body?.newPassword ?? body?.data?.newPassword;
+        if (!newPassword) {
+          throw new Error('Backend did not return a new password.');
+        }
+
+        if (selectedCompetition) await loadCompetitionData(selectedCompetition);
+
+        setNewRefereeCredentials({ userId: referee.userId, password: newPassword, name: referee.name });
+        toast({ title: 'Password reset successfully' });
+        return;
+      }
+
       const newPassword = generateHumanPassword();
       const newPasswordHash = await hashPassword(newPassword);
       
       // Update referee record
       const updatedReferee = { ...referee, passwordHash: newPasswordHash };
-      refereeStorage.save(updatedReferee);
+      await dataApi.saveReferee(updatedReferee);
       
       // Update user account
       const USERS_KEY = 'swimtrack_users';
@@ -283,7 +344,7 @@ export default function OrganizerDashboard() {
       }
       
       // Refresh data
-      if (selectedCompetition) loadCompetitionData(selectedCompetition);
+      if (selectedCompetition) await loadCompetitionData(selectedCompetition);
       
       // Show new credentials (plain text for user to see)
       setNewRefereeCredentials({ userId: referee.userId, password: newPassword, name: referee.name });
@@ -300,60 +361,14 @@ export default function OrganizerDashboard() {
     toast({ title: 'Copied to clipboard' });
   };
 
-  const deleteCompetition = (id: string) => {
+  const deleteCompetition = async (id: string) => {
     try {
-      // Cascade delete all related data
-      const competition = competitionStorage.getById(id);
-      if (!competition) return;
-    
-    // Delete teams
-    const teamsToDelete = teamStorage.getByCompetition(id);
-    teamsToDelete.forEach(team => teamStorage.delete(team.id));
-    
-    // Delete swimmers
-    const swimmersToDelete = swimmerStorage.getByCompetition(id);
-    swimmersToDelete.forEach(swimmer => swimmerStorage.delete(swimmer.id));
-    
-    // Delete referees and their user accounts
-    const refereesToDelete = refereeStorage.getByCompetition(id);
-    const USERS_KEY = 'swimtrack_users';
-    const AUTH_KEY = 'swimtrack_auth';
-    const users = JSON.parse(localStorage.getItem(USERS_KEY) || '[]') as User[];
-    
-    refereesToDelete.forEach(referee => {
-      // Remove user account
-      const filteredUsers = users.filter(u => u.email !== referee.userId);
-      localStorage.setItem(USERS_KEY, JSON.stringify(filteredUsers));
-      
-      // Clear session if referee is logged in
-      const currentAuth = JSON.parse(localStorage.getItem(AUTH_KEY) || '{}');
-      if (currentAuth.user?.email === referee.userId) {
-        localStorage.removeItem(AUTH_KEY);
+      await dataApi.deleteCompetition(id);
+      await loadCompetitions();
+      if (selectedCompetition?.id === id) {
+        setSelectedCompetition(null);
       }
-      
-      refereeStorage.delete(referee.id);
-    });
-    
-    // Delete lane assignments
-    const assignmentsToDelete = laneAssignmentStorage.getByCompetition(id);
-    assignmentsToDelete.forEach(a => laneAssignmentStorage.delete(a.id));
-    
-    // Delete lap counts
-    const lapCountsToDelete = lapCountStorage.getByCompetition(id);
-    lapCountsToDelete.forEach(lc => lapCountStorage.delete(lc.id));
-    
-    // Delete swim sessions
-    const sessionsToDelete = swimSessionStorage.getByCompetition(id);
-    sessionsToDelete.forEach(s => swimSessionStorage.delete(s.id));
-    
-    // Finally delete the competition
-    competitionStorage.delete(id);
-    
-    loadCompetitions();
-    if (selectedCompetition?.id === id) {
-      setSelectedCompetition(null);
-    }
-    toast({ title: 'Competition deleted', description: 'All related data has been removed' });
+      toast({ title: 'Competition deleted', description: 'All related data has been removed' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete competition';
       toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
@@ -366,10 +381,10 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const deleteTeam = (id: string) => {
+  const deleteTeam = async (id: string) => {
     try {
-      teamStorage.delete(id);
-      if (selectedCompetition) loadCompetitionData(selectedCompetition);
+      await dataApi.deleteTeam(id);
+      if (selectedCompetition) await loadCompetitionData(selectedCompetition);
       toast({ title: 'Team deleted' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete team';
@@ -377,10 +392,10 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const deleteSwimmer = (id: string) => {
+  const deleteSwimmer = async (id: string) => {
     try {
-      swimmerStorage.delete(id);
-      if (selectedCompetition) loadCompetitionData(selectedCompetition);
+      await dataApi.deleteSwimmer(id);
+      if (selectedCompetition) await loadCompetitionData(selectedCompetition);
       toast({ title: 'Swimmer removed' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete swimmer';
@@ -388,10 +403,10 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const deleteReferee = (id: string) => {
+  const deleteReferee = async (id: string) => {
     try {
-      refereeStorage.delete(id);
-      if (selectedCompetition) loadCompetitionData(selectedCompetition);
+      await dataApi.deleteReferee(id);
+      if (selectedCompetition) await loadCompetitionData(selectedCompetition);
       toast({ title: 'Referee removed' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete referee';
@@ -488,7 +503,7 @@ export default function OrganizerDashboard() {
                 <Card 
                   key={comp.id} 
                   className={`cursor-pointer transition-colors ${selectedCompetition?.id === comp.id ? 'ring-2 ring-primary' : 'hover:bg-muted/50'}`}
-                  onClick={() => loadCompetitionData(comp)}
+                  onClick={() => { void loadCompetitionData(comp); }}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
@@ -533,7 +548,7 @@ export default function OrganizerDashboard() {
                           <FileText className="h-3 w-3" />
                         </Button>
                       )}
-                      <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); deleteCompetition(comp.id); }}>
+                      <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); void deleteCompetition(comp.id); }}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -591,9 +606,9 @@ export default function OrganizerDashboard() {
                   competition={selectedCompetition} 
                   onUpdate={(updated) => {
                     setSelectedCompetition(updated);
-                    loadCompetitions();
+                    void loadCompetitions();
                     // Reload data in case referees were removed on completion
-                    loadCompetitionData(updated);
+                    void loadCompetitionData(updated);
                   }} 
                 />
 
@@ -680,7 +695,7 @@ export default function OrganizerDashboard() {
                                 <Button size="sm" variant="ghost" onClick={() => { setEditingTeam(team); setShowTeamDialog(true); }}>
                                   <Edit className="h-3 w-3" />
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => deleteTeam(team.id)}>
+                                <Button size="sm" variant="ghost" onClick={() => { void deleteTeam(team.id); }}>
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
                               </div>
@@ -771,7 +786,7 @@ export default function OrganizerDashboard() {
                                 </div>
                               </div>
                               {selectedCompetition.status !== 'completed' && (
-                                <Button size="sm" variant="ghost" onClick={() => deleteSwimmer(swimmer.id)}>
+                                <Button size="sm" variant="ghost" onClick={() => { void deleteSwimmer(swimmer.id); }}>
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
                               )}
@@ -790,7 +805,7 @@ export default function OrganizerDashboard() {
                       <CardTitle className="text-lg">Referees</CardTitle>
                       <CardDescription>{referees.length} referees assigned</CardDescription>
                     </div>
-                    <Button size="sm" onClick={handleCreateReferee} disabled={selectedCompetition.status === 'completed'}>
+                    <Button size="sm" onClick={() => { void handleCreateReferee(); }} disabled={selectedCompetition.status === 'completed'}>
                       <UserPlus className="h-4 w-4 mr-1" />
                       Add Referee
                     </Button>
@@ -850,10 +865,10 @@ export default function OrganizerDashboard() {
                             </div>
                             {selectedCompetition.status !== 'completed' && (
                               <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" onClick={() => handleResetRefereePassword(referee)} title="Reset password">
+                                <Button size="sm" variant="ghost" onClick={() => { void handleResetRefereePassword(referee); }} title="Reset password">
                                   <Key className="h-3 w-3" />
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => deleteReferee(referee.id)} title="Delete referee">
+                                <Button size="sm" variant="ghost" onClick={() => { void deleteReferee(referee.id); }} title="Delete referee">
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
                               </div>

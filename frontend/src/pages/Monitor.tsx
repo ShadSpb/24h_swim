@@ -304,7 +304,7 @@ export default function Monitor() {
     <ArrowUpDown className={`h-4 w-4 ml-1 inline ${active ? 'text-primary' : 'text-muted-foreground'}`} />
   );
 
-  const totalLaps = teamStats.reduce((sum, ts) => sum + ts.totalLaps, 0);
+  const totalLaps = swimmerStats.reduce((sum, stat) => sum + stat.totalLaps, 0);
   const totalDistance = selectedCompetition 
     ? (totalLaps * selectedCompetition.laneLength) / 1000 
     : 0;
@@ -619,7 +619,7 @@ export default function Monitor() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <span className="font-bold text-lg">{stat.totalLaps}</span>
-                                <span className="text-muted-foreground text-sm ml-2">/ {stat.totalLaps * (selectedCompetition?.laneLength || 25) * 2}m</span>
+                                <span className="text-muted-foreground text-sm ml-2">/ {stat.totalLaps * (selectedCompetition?.laneLength || 25)}m</span>
                               </TableCell>
                               <TableCell className="text-right">
                                 {stat.lapsPerHour.toFixed(1)}
@@ -712,7 +712,7 @@ export default function Monitor() {
                               </TableCell>
                               <TableCell className="text-right">
                                 <span className="font-bold text-lg">{stat.totalLaps}</span>
-                                <span className="text-muted-foreground text-sm ml-2">/ {stat.totalLaps * (selectedCompetition?.laneLength || 25) * 2}m</span>
+                                <span className="text-muted-foreground text-sm ml-2">/ {stat.totalLaps * (selectedCompetition?.laneLength || 25)}m</span>
                               </TableCell>
                               <TableCell className="text-right">
                                 {stat.lapsPerHour.toFixed(1)}

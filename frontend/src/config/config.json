@@ -10,7 +10,7 @@
     "from": "welcome@24swim.de"
   },
   "storage": {
-    "type": "local",
+    "type": "remote",
     "baseUrl": "https://api.24swim.de",
     "endpoints": {
       "competitions": "/competitions",
@@ -33,6 +33,6 @@
     "faqFeedback": true
   },
   "admin": {
-    "passwordHash": "30fde3598efc4693138c3252f0f0490aac2a3e4c7c433b1521815391aa7f376a"
+    "passwordHash": "03bb8694d3f6abbcc258ca5c94776db51eb9d336bc584bb6ca56f1e7497e5c8d"
   }
 }

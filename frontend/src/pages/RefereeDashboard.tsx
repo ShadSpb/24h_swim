@@ -12,15 +12,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Competition, Team, Swimmer, Referee, SwimSession } from '@/types';
 import { 
-  competitionStorage, 
-  teamStorage, 
-  swimmerStorage, 
-  refereeStorage, 
-  swimSessionStorage,
-  lapCountStorage,
+  dataApi,
   canCountLap,
   LapCount
-} from '@/lib/storage';
+} from '@/lib/api';
 import { Waves, AlertCircle, UserCheck, UserX, RefreshCw } from 'lucide-react';
 
 export default function RefereeDashboard() {
@@ -50,7 +45,7 @@ export default function RefereeDashboard() {
       navigate('/login');
       return;
     }
-    loadCompetitions();
+    void loadCompetitions();
   }, [isAuthenticated, user, navigate]);
 
   // Elapsed time timer - only when competition is active and started
@@ -78,54 +73,74 @@ export default function RefereeDashboard() {
     return () => clearInterval(interval);
   }, [selectedCompetition?.actualStartTime, selectedCompetition?.status]);
 
-  const loadCompetitions = useCallback(() => {
+  const loadCompetitions = useCallback(async () => {
     if (!user) return;
-    
-    const allReferees = refereeStorage.getAll();
-    const userRefereeAssignments = allReferees.filter(r => r.userId === user.email || r.email === user.email);
-    const competitionIds = [...new Set(userRefereeAssignments.map(r => r.competitionId))];
-    const userCompetitions = competitionIds.map(id => competitionStorage.getById(id)).filter(Boolean) as Competition[];
-    
-    setCompetitions(userCompetitions);
-  }, [user]);
 
-  const selectCompetition = (competitionId: string) => {
-    const comp = competitionStorage.getById(competitionId);
-    if (comp) {
+    try {
+      const userRefereeAssignments = await dataApi.getRefereesByUserId(user.email);
+      const competitionIds = [...new Set(userRefereeAssignments.map(r => r.competitionId))];
+      const competitionList = await Promise.all(competitionIds.map(id => dataApi.getCompetitionById(id)));
+      const userCompetitions = competitionList.filter(Boolean) as Competition[];
+      setCompetitions(userCompetitions);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load competitions';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+      setCompetitions([]);
+    }
+  }, [user, toast, t]);
+
+  const selectCompetition = async (competitionId: string) => {
+    try {
+      const comp = await dataApi.getCompetitionById(competitionId);
+      if (!comp) return;
+
       setSelectedCompetition(comp);
-      
-      const referees = refereeStorage.getByCompetition(competitionId);
-      const myReferee = referees.find(r => r.userId === user?.email || r.email === user?.email);
+
+      const [referees, teams, swimmers, laps, sessions] = await Promise.all([
+        dataApi.getRefereesByCompetition(competitionId),
+        dataApi.getTeamsByCompetition(competitionId),
+        dataApi.getSwimmersByCompetition(competitionId),
+        dataApi.getLapCountsByCompetition(competitionId),
+        dataApi.getActiveSwimSessions(competitionId),
+      ]);
+
+      const userEmail = user?.email || '';
+      const userEmailLocalPart = userEmail.split('@')[0];
+      const myReferee = referees.find(r =>
+        r.userId === userEmail ||
+        r.email === userEmail ||
+        r.userId === userEmailLocalPart
+      );
       setAssignedReferee(myReferee || null);
-      
-      // Load all teams and swimmers for this competition
-      setAllTeams(teamStorage.getByCompetition(competitionId));
-      setAllSwimmers(swimmerStorage.getByCompetition(competitionId));
-      
-      // Load lap counts for all teams
-      const teams = teamStorage.getByCompetition(competitionId);
+      setAllTeams(teams);
+      setAllSwimmers(swimmers);
+
       const counts: Record<string, number> = {};
       teams.forEach(team => {
-        const teamLaps = lapCountStorage.getByTeam(team.id);
-        counts[team.id] = teamLaps.length;
+        counts[team.id] = laps.filter(lap => lap.teamId === team.id).length;
       });
       setLapCounts(counts);
-      
-      // Load all active sessions for this competition
-      const sessions = swimSessionStorage.getActive(competitionId);
       setActiveSessions(sessions.filter(s => s.isActive));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load competition data';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
-  const refreshCompetition = () => {
+  const refreshCompetition = async () => {
     if (!selectedCompetition) return;
-    const updated = competitionStorage.getById(selectedCompetition.id);
-    if (updated) {
-      setSelectedCompetition(updated);
-      // Also refresh active sessions
-      const sessions = swimSessionStorage.getActive(updated.id);
-      setActiveSessions(sessions.filter(s => s.isActive));
-      toast({ title: t.refereeDashboard.statusRefreshed });
+    try {
+      const updated = await dataApi.getCompetitionById(selectedCompetition.id);
+      if (updated) {
+        setSelectedCompetition(updated);
+        // Also refresh active sessions
+        const sessions = await dataApi.getActiveSwimSessions(updated.id);
+        setActiveSessions(sessions.filter(s => s.isActive));
+        toast({ title: t.refereeDashboard.statusRefreshed });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to refresh competition';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -141,8 +156,16 @@ export default function RefereeDashboard() {
     return activeSessions.find(s => s.teamId === teamId);
   };
 
-  const startSwimmerSession = (swimmer: Swimmer, laneNumber: number) => {
-    if (!selectedCompetition || !assignedReferee) return;
+  const startSwimmerSession = async (swimmer: Swimmer, laneNumber: number) => {
+    if (!selectedCompetition) return;
+    if (!assignedReferee) {
+      toast({
+        title: t.common.error,
+        description: 'No referee assignment was found for this account in the selected competition.',
+        variant: 'destructive',
+      });
+      return;
+    }
     
     const team = allTeams.find(t => t.id === swimmer.teamId);
     if (!team) return;
@@ -170,23 +193,38 @@ export default function RefereeDashboard() {
       isActive: true,
     };
     
-    swimSessionStorage.save(session);
-    setActiveSessions(prev => [...prev, session]);
-    setShowSwimmerDialog(false);
-    setSelectedLane('');
-    setSelectedTeamForSwimmer('');
-    toast({ title: `${swimmer.name} ${t.refereeDashboard.nowSwimming} ${laneNumber}` });
+    try {
+      await dataApi.saveSwimSession(session);
+      const sessions = await dataApi.getActiveSwimSessions(selectedCompetition.id);
+      setActiveSessions(sessions.filter(s => s.isActive));
+      setShowSwimmerDialog(false);
+      setSelectedLane('');
+      setSelectedTeamForSwimmer('');
+      toast({ title: `${swimmer.name} ${t.refereeDashboard.nowSwimming} ${laneNumber}` });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start swimmer session';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
   };
 
-  const endSwimmerSession = (session: SwimSession) => {
-    session.endTime = new Date().toISOString();
-    session.isActive = false;
-    swimSessionStorage.save(session);
-    setActiveSessions(prev => prev.filter(s => s.id !== session.id));
-    toast({ title: `${getSwimmerName(session.swimmerId)} ${t.refereeDashboard.sessionEnded}` });
+  const endSwimmerSession = async (session: SwimSession) => {
+    try {
+      const endedSession: SwimSession = {
+        ...session,
+        endTime: new Date().toISOString(),
+        isActive: false,
+      };
+      await dataApi.saveSwimSession(endedSession);
+      const sessions = await dataApi.getActiveSwimSessions(session.competitionId);
+      setActiveSessions(sessions.filter(s => s.isActive));
+      toast({ title: `${getSwimmerName(session.swimmerId)} ${t.refereeDashboard.sessionEnded}` });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to end swimmer session';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
   };
 
-  const countLap = (session: SwimSession) => {
+  const countLap = async (session: SwimSession) => {
     if (!selectedCompetition || !assignedReferee) return;
     
     // Check if competition is active
@@ -207,7 +245,8 @@ export default function RefereeDashboard() {
     
     // Check double-count prevention
     const timeout = selectedCompetition.doubleCountTimeout || 15;
-    if (!canCountLap(session.swimmerId, timeout)) {
+    const canCount = await canCountLap(session.swimmerId, timeout);
+    if (!canCount) {
       const lastLapTime = lastCountTime[session.swimmerId];
       const timeSinceLastCount = lastLapTime 
         ? Math.floor((Date.now() - lastLapTime) / 1000)
@@ -234,11 +273,13 @@ export default function RefereeDashboard() {
       lapNumber: newLapNumber,
     };
     
-    lapCountStorage.add(lapCount);
-    
-    // Update session lap count
-    session.lapCount = newLapNumber;
-    swimSessionStorage.save(session);
+    try {
+      await dataApi.addLapCount(lapCount);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to count lap';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+      return;
+    }
     
     // Update local state
     setLapCounts(prev => ({ ...prev, [teamId]: newLapNumber }));
@@ -365,7 +406,7 @@ export default function RefereeDashboard() {
                   </div>
                   
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={refreshCompetition}>
+                    <Button variant="outline" size="sm" onClick={() => { void refreshCompetition(); }}>
                       <RefreshCw className="h-4 w-4 mr-1" />
                       {t.refereeDashboard.refresh}
                     </Button>
@@ -473,7 +514,7 @@ export default function RefereeDashboard() {
                                 key={swimmer.id}
                                 variant="outline"
                                 className="w-full justify-start"
-                                onClick={() => startSwimmerSession(swimmer, parseInt(selectedLane))}
+                                onClick={() => { void startSwimmerSession(swimmer, parseInt(selectedLane)); }}
                               >
                                 {swimmer.name}
                                 {swimmer.isUnder12 && <Badge variant="secondary" className="ml-2">{t.refereeDashboard.underTwelve}</Badge>}
@@ -569,7 +610,7 @@ export default function RefereeDashboard() {
                                   <Button 
                                     variant="ghost" 
                                     size="sm"
-                                    onClick={() => endSwimmerSession(session)}
+                                    onClick={() => { void endSwimmerSession(session); }}
                                   >
                                     <UserX className="h-4 w-4 mr-1" />
                                     {t.refereeDashboard.end}
@@ -586,7 +627,7 @@ export default function RefereeDashboard() {
                                     size="lg"
                                     className="h-20 w-20 rounded-full text-xl"
                                     disabled={selectedCompetition.status !== 'active'}
-                                    onClick={() => countLap(session)}
+                                    onClick={() => { void countLap(session); }}
                                     style={{ backgroundColor: getTeamColor(session.teamId) }}
                                   >
                                     +1

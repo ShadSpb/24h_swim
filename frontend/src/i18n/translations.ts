@@ -41,9 +41,9 @@ export const translations = {
       name: 'Name',
       email: 'E-Mail',
       password: 'Passwort',
-      dashboard: 'Dashboard',
+      dashboard: 'Übersicht',
       settings: 'Einstellungen',
-      liveMonitor: 'Live-Monitor',
+      liveMonitor: 'Live-Ansicht',
       privacy: 'Datenschutz',
     },
 
@@ -59,7 +59,7 @@ export const translations = {
       
       // Features
       featuresTitle: 'Alles was Sie brauchen',
-      featuresSubtitle: 'Komplettes Toolkit zur Verwaltung von 24-Stunden-Schwimmwettbewerben von Anfang bis Ende.',
+      featuresSubtitle: 'Kompletter Werkzeugkasten zur Verwaltung von 24-Stunden-Schwimmwettbewerben von Anfang bis Ende.',
       realTimeTracking: 'Echtzeit-Verfolgung',
       realTimeTrackingDesc: 'Zählen Sie Bahnen in Echtzeit mit sofortigen Updates für alle sichtbar.',
       teamManagement: 'Team-Verwaltung',
@@ -69,7 +69,7 @@ export const translations = {
       liveLeaderboard: 'Live-Rangliste',
       liveLeaderboardDesc: 'Dynamische Ranglisten werden in Echtzeit aktualisiert, wenn Teams mehr Bahnen absolvieren.',
       statistics: 'Statistiken',
-      statisticsDesc: 'Verfolgen Sie Bahnen pro Stunde, schnellste Zeiten, Early Bird und Late Bird Kategorien.',
+      statisticsDesc: 'Verfolgen Sie Bahnen pro Stunde, schnellste Zeiten sowie Frühstarter- und Nachtstarter-Kategorien.',
       multiLaneSupport: 'Mehrbahn-Unterstützung',
       multiLaneSupportDesc: 'Verwalten Sie Wettbewerbe mit mehreren Schwimmbahnen gleichzeitig.',
 
@@ -77,11 +77,11 @@ export const translations = {
       howItWorksTitle: 'So funktioniert es',
       howItWorksSubtitle: 'Einfacher Arbeitsablauf für Organisatoren, Schiedsrichter und Zuschauer.',
       step1Title: 'Wettbewerb einrichten',
-      step1Desc: 'Organisator erstellt das Event, fügt Teams, Schwimmer hinzu und weist Schiedsrichter den Bahnen zu.',
+      step1Desc: 'Organisator erstellt den Wettbewerb, fügt Teams und Schwimmer hinzu und weist Schiedsrichter den Bahnen zu.',
       step2Title: 'Bahnen zählen',
       step2Desc: 'Schiedsrichter registrieren sich auf ihrer Bahn und tippen, um jedes Mal zu zählen, wenn ein Schwimmer vorbeikommt.',
       step3Title: 'Live verfolgen',
-      step3Desc: 'Jeder kann die Live-Rangliste mit Echtzeit-Statistiken und Countdown ansehen.',
+      step3Desc: 'Jeder kann die Live-Rangliste mit Echtzeit-Statistiken und Rückwärtszähler ansehen.',
 
       // CTA
       ctaTitle: 'Bereit für Ihren nächsten Wettbewerb?',
@@ -91,20 +91,18 @@ export const translations = {
 
     // About page
     about: {
-      title: 'Über SwimTrack 24',
-      socialProject: 'Soziales Projekt',
-      socialProjectDesc: 'Dies ist ein soziales Projekt und es besteht keine Verpflichtung zur Zahlung für die Nutzung des Dienstes. Der Ersteller bittet jedoch darum, den Dienst mit Respekt zu nutzen.',
-      noWarranty: 'Keine Garantie',
-      noWarrantyDesc: 'Es gibt keine Kontrolle über die Konsistenz der Daten. Der gesamte Dienst wird ohne jegliche Garantie oder Verantwortung "wie besehen" bereitgestellt.',
+      title: 'Über 24swim.de',
+      socialProject: 'Worum geht es auf dieser Website?',
+      socialProjectDesc: 'Mit dieser Website können Sie Schwimmer und Teams bei Langzeit-Schwimmwettbewerben wie 24- oder 48-Stunden-Schwimmen verfolgen. Keine Zettelwirtschaft mehr, alles digital.',
+      noWarranty: 'Sind meine Schwimmdaten konsistent?',
+      noWarrantyDesc: 'Wir prüfen die Datenkonsistenz nur grundlegend gemäß den Wettbewerbsregeln. Insgesamt wurde die Seite aus Spaß und für Schwimmer entwickelt. Sie können vorab einen Testwettbewerb durchführen und prüfen, ob die Logik Ihren Erwartungen entspricht.',
       asIs: 'Der Dienst wird "wie besehen" bereitgestellt, ohne jegliche ausdrückliche oder stillschweigende Gewährleistung.',
-      ourMission: 'Unsere Mission',
-      ourMissionDesc: 'Bahnenzählung bei jedem 24-Stunden-Schwimmevent genau, transparent und mühelos machen.',
       builtWithCare: 'Mit Sorgfalt entwickelt',
       builtWithCareDesc: 'Entwickelt von Schwimmenthusiasten, die die Anforderungen von Ausdauerveranstaltungen verstehen.',
       realTime: 'Echtzeit',
       realTimeDesc: 'Sofortige Updates stellen sicher, dass jeder die neuesten Zählungen sieht, sobald sie passieren.',
       keyFeatures: 'Hauptfunktionen',
-      keyFeaturesDesc: 'Mehrbahn-Unterstützung • Team- und Einzelschwimmer-Verfolgung • Doppelzähl-Schutz • Early Bird & Late Bird Statistiken • Live-Rangliste mit Countdown • Schiedsrichter-Schichtverwaltung • Unterstützung für Schwimmer unter 12 mit Elternverfolgung • Zweisprachig (Deutsch / Englisch)',
+      keyFeaturesDesc: 'Mehrbahn-Unterstützung • Team- und Einzelschwimmer-Verfolgung • Schutz vor Doppelzählung (über konfiguriertes Zeitfenster) • Frühstarter- und Nachtstarter-Statistiken • Live-Rangliste mit Rückwärtszähler',
     },
 
     // Privacy page (Datenschutz)
@@ -132,7 +130,7 @@ export const translations = {
     // FAQ page
     faq: {
       title: 'FAQ',
-      subtitle: 'Antworten auf die häufigsten Fragen zu 24-Stunden-Schwimmwettbewerben',
+      subtitle: 'Antworten auf die häufigsten Fragen zur Service-Logik',
       frequentQuestions: 'Häufige Fragen',
       askQuestion: 'Frage stellen',
       yourEmail: 'Ihre E-Mail (optional)',
@@ -144,25 +142,27 @@ export const translations = {
       
       // Q&A - these are templates to be adjusted manually
       q1: 'Wie funktioniert die Bahnenzählung?',
-      a1: 'Schiedsrichter registrieren sich auf ihrer zugewiesenen Bahn und tippen auf den Team-Button, wenn ein Schwimmer vorbeikommt. Das System zählt automatisch und verhindert doppelte Zählungen innerhalb des konfigurierten Zeitraums.',
-      q2: 'Können mehrere Teams auf derselben Bahn schwimmen?',
-      a2: 'Ja, mehrere Teams können derselben Bahn zugewiesen werden. Jedoch kann von jedem Team nur ein Schwimmer gleichzeitig im Wasser sein. Teams auf derselben Bahn müssen unterschiedliche Farben haben.',
-      q3: 'Wie werden Schwimmer unter 12 Jahren behandelt?',
-      a3: 'Schwimmer unter 12 Jahren benötigen registrierte Kontaktdaten der Eltern und müssen während des Schwimmens von einem Elternteil begleitet werden, besonders während der Nachtzeiten (22:00-04:00).',
-      q4: 'Was passiert, wenn ich versehentlich doppelt tippe?',
-      a4: 'Das System verhindert automatisch doppelte Zählungen innerhalb des vom Organisator konfigurierten Timeout-Zeitraums. Schnelle aufeinanderfolgende Taps werden ignoriert.',
-      q5: 'Kann ein Schiedsrichter mehrere Bahnen kontrollieren?',
-      a5: 'Ja, in Zeiten mit geringer Aktivität (z.B. 3 Uhr nachts) kann ein Schiedsrichter mehrere Bahnen kontrollieren, wenn nur wenige Schwimmer aktiv sind.',
-      q6: 'Wie funktionieren die Early Bird und Late Bird Kategorien?',
-      a6: 'Early Bird zählt Bahnen zwischen 05:00 und 06:00 Uhr. Late Bird zählt Bahnen zwischen 00:00 und 01:00 Uhr. Diese Kategorien belohnen Schwimmer, die in anspruchsvollen Zeiten aktiv sind.',
-      q7: 'Kann ich den Wettbewerb früher beenden?',
-      a7: 'Ja, Organisatoren können den Wettbewerb vorzeitig mit der Force-Stop-Funktion beenden. Dies erfordert eine doppelte Bestätigung durch Eingabe der E-Mail-Adresse, des Wettbewerbsnamens und der Bestätigung.',
-      q8: 'Wie ändere ich die Bahnzuweisung eines Teams?',
-      a8: 'Bahnänderungen können nur vom Organisator vorgenommen werden. Kontaktieren Sie Ihren Wettbewerbsorganisator, um Änderungen an den Bahnzuweisungen anzufordern.',
-      q9: 'Was ist der Doppelzähl-Timeout?',
-      a9: 'Der Doppelzähl-Timeout ist ein vom Organisator konfigurierter Zeitraum, der verhindert, dass versehentliche Mehrfachtaps gezählt werden. Dies wird pro Wettbewerb festgelegt.',
-      q10: 'Wie kann ich den Live-Monitor teilen?',
-      a10: 'Jeder Wettbewerb hat eine einzigartige Monitor-URL, die mit Zuschauern geteilt werden kann. Anonymer Zugriff ist verfügbar - keine Anmeldung erforderlich zum Ansehen.',
+      a1: 'Ganz einfach: Jeder Wettbewerbsorganisator erstellt Schiedsrichter, die sich in ihrem Bereich anmelden und beim abgeschlossenen Schwimmzug einfach den +1-Button drücken.',
+      q2: 'Dürfen wir den Service vor dem Wettbewerb testen?',
+      a2: 'Ja, natürlich. Sie können Testwettbewerbe anlegen und prüfen, ob die Logik zu Ihren Anforderungen passt. Pro Konto können Sie so viele Wettbewerbe erstellen, wie Sie möchten.',
+      q3: 'Müssen wir bezahlen?',
+      a3: 'Kurz gesagt: nein. Dies ist ein kostenloser Service. Nutzen Sie ihn einfach und genießen Sie das Schwimmen.',
+      q4: 'Können mehrere Teams auf derselben Bahn schwimmen?',
+      a4: 'Ja, mehrere Teams können derselben Bahn zugewiesen werden. Allerdings darf pro Team immer nur ein Schwimmer gleichzeitig im Wasser sein. Teams auf derselben Bahn müssen unterschiedliche Farben haben.',
+      q5: 'Was passiert, wenn ich versehentlich doppelt tippe?',
+      a5: 'Das System verhindert automatisch Doppelzählungen innerhalb des vom Organisator konfigurierten Zeitfensters. Schnelle, aufeinanderfolgende Eingaben werden ignoriert.',
+      q6: 'Kann ein Schiedsrichter mehrere Bahnen betreuen?',
+      a6: 'Ja, in Zeiten mit geringer Aktivität (zum Beispiel nachts) kann ein Schiedsrichter mehrere Bahnen betreuen.',
+      q7: 'Wie funktionieren die Frühstarter- und Nachtstarter-Kategorien?',
+      a7: 'Frühstarter zählt Bahnen zwischen 05:00 und 06:00 Uhr. Nachtstarter zählt Bahnen zwischen 00:00 und 01:00 Uhr. Diese Kategorien belohnen Schwimmer, die in anspruchsvollen Zeiten aktiv sind.',
+      q8: 'Kann ich den Wettbewerb vorzeitig beenden?',
+      a8: 'Ja, Organisatoren können den Wettbewerb mit der Force-Stop-Funktion vorzeitig beenden. Dafür sind zwei Bestätigungen nötig: Organisator-E-Mail, Wettbewerbsname und die Bestätigungs-Checkbox.',
+      q9: 'Wie ändere ich die Bahnzuweisung eines Teams?',
+      a9: 'Bahnänderungen können nur vom Organisator vorgenommen werden. Kontaktieren Sie Ihren Wettbewerbsorganisator, um Änderungen der Bahnzuweisung anzufordern.',
+      q10: 'Was ist das Doppelzähl-Zeitfenster?',
+      a10: 'Das Doppelzähl-Zeitfenster ist ein konfigurierbarer Zeitraum, den der Organisator festlegt, damit versehentliche Mehrfach-Eingaben nicht gezählt werden. Es wird pro Wettbewerb gesetzt.',
+      q11: 'Wie kann ich die Live-Ansicht teilen?',
+      a11: 'Jeder Wettbewerb hat eine eindeutige Monitor-URL, die mit Zuschauern geteilt werden kann. Anonymer Zugriff ist verfügbar, zum Ansehen ist keine Anmeldung erforderlich.',
     },
 
     // Rules page (kept for backwards compatibility)
@@ -213,7 +213,7 @@ export const translations = {
       couldNotReset: 'Passwort konnte nicht zurückgesetzt werden. Bitte versuchen Sie es erneut.',
       loginSuccess: 'Sie haben sich erfolgreich angemeldet.',
       loginFailed: 'Ungültige E-Mail oder Passwort.',
-      welcomeToSwimTrack: 'Willkommen bei SwimTrack 24.',
+      welcomeToSwimTrack: 'Willkommen bei 24swim.de.',
       accountExists: 'Ein Konto mit dieser E-Mail existiert bereits.',
     },
 
@@ -328,15 +328,15 @@ export const translations = {
 
     // Monitor
     monitor: {
-      title: 'Live-Monitor',
+      title: 'Live-Ansicht',
       subtitle: 'Echtzeit-Wettbewerbsstand',
       leaderboard: 'Rangliste',
-      countdown: 'Countdown',
+      countdown: 'Rückwärtszähler',
       timeRemaining: 'Verbleibende Zeit',
       competitionEnded: 'Wettbewerb beendet',
       competitionNotStarted: 'Wettbewerb noch nicht gestartet',
-      earlyBird: 'Early Bird (05:00-06:00)',
-      lateBird: 'Late Bird (00:00-01:00)',
+      earlyBird: 'Frühstarter (05:00-06:00)',
+      lateBird: 'Nachtstarter (00:00-01:00)',
       rank: 'Rang',
       noData: 'Keine Daten verfügbar',
       selectCompetition: 'Wettbewerb auswählen',
@@ -357,7 +357,7 @@ export const translations = {
 
     // Admin
     admin: {
-      title: 'Administration',
+      title: 'Verwaltung',
       smtpConfig: 'SMTP-Konfiguration',
       smtpHost: 'SMTP-Host',
       smtpPort: 'SMTP-Port',
@@ -441,7 +441,7 @@ export const translations = {
 
     // Referee Dashboard
     refereeDashboard: {
-      title: 'Schiedsrichter-Dashboard',
+      title: 'Schiedsrichterübersicht',
       subtitle: 'Bahnen für Schwimmer zählen',
       selectCompetition: 'Wettbewerb auswählen',
       selectCompetitionDesc: 'Wählen Sie den Wettbewerb, den Sie betreuen',
@@ -484,7 +484,7 @@ export const translations = {
       cannotRegister: 'Schwimmer kann nicht registriert werden',
       teamHasActiveSwimmer: 'Dieses Team hat bereits einen aktiven Schwimmer.',
       nowSwimming: 'schwimmt jetzt auf Bahn',
-      sessionEnded: 'Session beendet',
+      sessionEnded: 'Durchgang beendet',
       tooSoon: 'Zu schnell!',
       waitMore: 'Warten Sie noch',
       moreSeconds: 'Sekunden',
@@ -545,7 +545,7 @@ export const translations = {
       heroSubtitle: 'Real-time lap counting, team statistics, and live leaderboards for endurance swimming competitions. Designed for referees, loved by organizers.',
       getStarted: 'Get Started',
       learnMore: 'Learn More',
-      professionalTracking: 'Professional Swimming Competition Tracking',
+      professionalTracking: 'Swimming tracker for long runners',
       
       // Features
       featuresTitle: 'Everything You Need',
@@ -581,20 +581,18 @@ export const translations = {
 
     // About page
     about: {
-      title: 'About SwimTrack 24',
-      socialProject: 'Social Project',
-      socialProjectDesc: 'This is a social project and there is no obligation to pay for usage of the service. However, the creator asks to use the service with respect.',
-      noWarranty: 'No Warranty',
-      noWarrantyDesc: 'There is no control on consistency of the data. The whole service is provided "as is" without any warranty or responsibility.',
+      title: 'About 24swim.de',
+      socialProject: 'What this site about?',
+      socialProjectDesc: 'Site allow you to track swimmers and teams during long-term swimming competitions, like 24 hour swimming or 48 hour swimming. No more papers, digital format.',
+      noWarranty: 'Is my swimming data consistent?',
+      noWarrantyDesc: 'We are doing only basic check of the data consistency, according to competition rules. In general, site was developed for fun and for swimmers. You can try do a test competition in advance and verify that logic works as you expect.',
       asIs: 'The service is provided "as is", without warranty of any kind, express or implied.',
-      ourMission: 'Our Mission',
-      ourMissionDesc: 'Make lap counting accurate, transparent, and effortless for every 24-hour swimming event.',
       builtWithCare: 'Built with Care',
       builtWithCareDesc: 'Designed by swimming enthusiasts who understand the demands of endurance events.',
       realTime: 'Real-Time',
       realTimeDesc: 'Instant updates ensure everyone sees the latest counts the moment they happen.',
       keyFeatures: 'Key Features',
-      keyFeaturesDesc: 'Multi-lane support • Team and individual swimmer tracking • Double-count prevention • Early Bird & Late Bird statistics • Live leaderboard with countdown • Referee shift management • Support for swimmers under 12 with parent tracking • Bilingual (German / English)',
+      keyFeaturesDesc: 'Multi-lane support • Team and individual swimmer tracking • Double-count prevention (by configured timeout)• Early Bird & Late Bird statistics • Live leaderboard with countdown',
     },
 
     // Privacy page
@@ -622,7 +620,7 @@ export const translations = {
     // FAQ page
     faq: {
       title: 'FAQ',
-      subtitle: 'Answers to the most common questions about 24-hour swimming competitions',
+      subtitle: 'Answers to the most common questions about service logic',
       frequentQuestions: 'Common Questions',
       askQuestion: 'Ask a Question',
       yourEmail: 'Your Email (optional)',
@@ -634,25 +632,28 @@ export const translations = {
       
       // Q&A - these are templates to be adjusted manually
       q1: 'How does lap counting work?',
-      a1: 'Referees register on their assigned lane and tap the team button when a swimmer passes. The system automatically counts and prevents double-counting within the configured timeout period.',
-      q2: 'Can multiple teams swim on the same lane?',
-      a2: 'Yes, multiple teams can be assigned to the same lane. However, only one swimmer per team can be in the water at any time. Teams on the same lane must have different colors.',
-      q3: 'How are swimmers under 12 years old handled?',
-      a3: 'Swimmers under 12 require registered parent contact information and must have a parent present during swimming, especially during night hours (22:00-04:00).',
-      q4: 'What happens if I accidentally double-tap?',
-      a4: 'The system automatically prevents double-counting within the organizer-configured timeout period. Rapid consecutive taps will be ignored.',
-      q5: 'Can one referee control multiple lanes?',
-      a5: 'Yes, during low-activity periods (e.g., 3 AM), one referee may control multiple lanes if only a few swimmers are active.',
-      q6: 'How do the Early Bird and Late Bird categories work?',
-      a6: 'Early Bird counts laps between 05:00 and 06:00 AM. Late Bird counts laps between 00:00 and 01:00 AM. These categories reward swimmers who are active during challenging hours.',
-      q7: 'Can I end the competition early?',
-      a7: 'Yes, organizers can end the competition early using the Force Stop feature. This requires double confirmation by entering the organizer email, competition name, and confirmation checkbox.',
-      q8: 'How do I change a team\'s lane assignment?',
-      a8: 'Lane changes can only be made by the organizer. Contact your competition organizer to request changes to lane assignments.',
-      q9: 'What is the double-count timeout?',
-      a9: 'The double-count timeout is a configurable period set by the organizer that prevents accidental multiple taps from being counted. This is set per competition.',
-      q10: 'How can I share the live monitor?',
-      a10: 'Each competition has a unique monitor URL that can be shared with spectators. Anonymous access is available - no login required to view.',
+      a1: 'Extremely easy, each competition organizer creates a referees who can logon into their area and simply press +1 buttom when swimmer finished his lap',
+      q2: 'Are we allowed to try service before competition?',
+      a2: 'Yes, you are! Feel free to do test competitions and ensure that logic fit into your needs. You can create as many competitions as you want within single account.',
+      q3: 'Do we need to pay?',
+      a3: 'In short no. This is free service, feel free simply to use it and enjoy swimming.',
+      q4: 'Can multiple teams swim on the same lane?',
+      a4: 'Yes, multiple teams can be assigned to the same lane. However, only one swimmer per team can be in the water at any time. Teams on the same lane must have different colors.',
+      q5: 'What happens if I accidentally double-tap?',
+      a5: 'The system automatically prevents double-counting within the organizer-configured timeout period. Rapid consecutive taps will be ignored.',
+      q6: 'Can one referee control multiple lanes?',
+      a6: 'Yes, during low-activity periods (for example at night), one referee may control multiple lanes.',
+      q7: 'How do the Early Bird and Late Bird categories work?',
+      a7: 'Early Bird counts laps between 05:00 and 06:00. Late Bird counts laps between 00:00 and 01:00. These categories reward swimmers who are active during challenging hours.',
+      q8: 'Can I end the competition early?',
+      a8: 'Yes, organizers can end the competition early using the Force Stop feature. This requires double confirmation by entering the organizer email, competition name, and confirmation checkbox.',
+      q9: 'How do I change a team\'s lane assignment?',
+      a9: 'Lane changes can only be made by the organizer. Contact your competition organizer to request changes to lane assignments.',
+      q10: 'What is the double-count timeout?',
+      a10: 'The double-count timeout is a configurable period set by the organizer that prevents accidental multiple taps from being counted. This is set per competition.',
+      q11: 'How can I share the live monitor?',
+      a11: 'Each competition has a unique monitor URL that can be shared with spectators. Anonymous access is available - no login required to view.',
+
     },
 
     // Rules page (kept for backwards compatibility)
