@@ -41,14 +41,35 @@ jobs:
 
             cd "${DEPLOY_PATH}"
 
+            # Support deployments where repository is nested one level deeper.
+            if [ ! -d .git ] && [ -d 24h_swim/.git ]; then
+              cd 24h_swim
+            fi
+
             if [ ! -d .git ]; then
               echo "DEPLOY_PATH does not contain a git repository: ${DEPLOY_PATH}"
+              echo "Expected .git in ${DEPLOY_PATH} or ${DEPLOY_PATH}/24h_swim"
               exit 1
             fi
 
             git fetch --prune origin
             git checkout "${DEPLOY_REF}"
-            git pull --ff-only origin "${DEPLOY_REF}"
+            if ! git pull --ff-only origin "${DEPLOY_REF}"; then
+              echo "git pull failed. Common reason: uncommitted local changes on server."
+              git status --short || true
+              exit 1
+            fi
 
+            if [ ! -f docker-compose.yml ]; then
+              echo "docker-compose.yml not found in $(pwd)"
+              ls -la
+              exit 1
+            fi
+
+            if ! docker network inspect nginx-network >/dev/null 2>&1; then
+              docker network create --subnet=10.200.0.0/24 nginx-network
+            fi
+
+            docker compose -f docker-compose.yml config >/dev/null
             docker compose -f docker-compose.yml up -d --build --remove-orphans
             docker compose -f docker-compose.yml ps
