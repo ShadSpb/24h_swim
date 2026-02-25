@@ -17,7 +17,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+/lib/
 lib64/
 parts/
 sdist/
@@ -325,3 +325,7 @@ docs/.vitepress/dist
 # macOS
 # https://github.com/github/gitignore/blob/master/Global/macOS.gitignore
 .DS_Store
+
+backend/swimtrack.db
+backend/swimtrack.db-shm
+backend/swimtrack.db-wal
