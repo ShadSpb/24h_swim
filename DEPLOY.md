@@ -75,7 +75,7 @@ On the deployment server:
 mkdir -p /opt/24h_swim
 cd /opt/24h_swim
 git clone <your-repo-url> .
-docker network ls | grep nginx || docker network create --subnet=10.200.0.0/24 nginx
+docker network ls | grep nginx-network || docker network create --subnet=10.200.0.0/24 nginx-network
 ```
 
 Then set `DEPLOY_PATH=/opt/24h_swim` in GitHub Secrets.
