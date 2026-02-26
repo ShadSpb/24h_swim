@@ -25,6 +25,8 @@ From repository root:
 docker compose -f docker-compose.yml up -d --build
 ```
 
+Use only the repository-root `docker-compose.yml` for server deployments. Do not run `backend/docker-compose.yml` or `frontend/docker-compose.yml` on the same host.
+
 ## Services
 
 - Frontend: `10.200.0.8`
