@@ -170,13 +170,32 @@ export default function OrganizerDashboard() {
     try {
       const formData = new FormData(e.currentTarget);
       
+      const dobInput = (formData.get('dateOfBirth') as string || '').trim();
+      const dateOfBirth = dobInput || null;
+
+      // Derive isUnder12 client-side so the API contract stays the same
+      // (backend will recompute authoritatively from dateOfBirth).
+      let isUnder12 = false;
+      if (dateOfBirth) {
+        const born = new Date(dateOfBirth);
+        if (!Number.isNaN(born.getTime())) {
+          const today = new Date();
+          let years = today.getFullYear() - born.getFullYear();
+          const m = today.getMonth() - born.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < born.getDate())) years--;
+          isUnder12 = years < 12;
+        }
+      }
+
       const swimmer: Swimmer = {
         id: crypto.randomUUID(),
         name: formData.get('name') as string,
         teamId: formData.get('teamId') as string,
         competitionId: selectedCompetition.id,
-        isUnder12: formData.get('isUnder12') === 'true',
-        parentContact: formData.get('parentContact') as string || undefined,
+        dateOfBirth,
+        isUnder12,
+        parentName: (formData.get('parentName') as string) || undefined,
+        parentContact: (formData.get('parentContact') as string) || undefined,
         createdAt: new Date().toISOString(),
       };
 
@@ -744,16 +763,12 @@ export default function OrganizerDashboard() {
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="isUnder12">Under 12 years old?</Label>
-                            <Select name="isUnder12" defaultValue="false">
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="false">No</SelectItem>
-                                <SelectItem value="true">Yes</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <Label htmlFor="dateOfBirth">Date of birth (DD.MM.YYYY)</Label>
+                            <Input id="dateOfBirth" name="dateOfBirth" type="date" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="parentName">Parent Name (if under 12)</Label>
+                            <Input id="parentName" name="parentName" placeholder="Full name" />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="parentContact">Parent Contact (if under 12)</Label>
@@ -780,6 +795,10 @@ export default function OrganizerDashboard() {
                                 <div>
                                   <p className="font-medium">
                                     {swimmer.name}
+                                    {swimmer.dateOfBirth && (() => {
+                                      const [y, m, d] = swimmer.dateOfBirth.split('-');
+                                      return <span className="ml-2 text-xs text-muted-foreground">{`${d}.${m}.${y}`}</span>;
+                                    })()}
                                     {swimmer.isUnder12 && <Badge variant="secondary" className="ml-2">Under 12</Badge>}
                                   </p>
                                   <p className="text-sm text-muted-foreground">{team?.name || 'Unknown team'}</p>

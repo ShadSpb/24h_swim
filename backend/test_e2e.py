@@ -154,32 +154,43 @@ check("unknown team PUT → 404",         s(client.put("/teams/nope", json={})) 
 
 # ═════════════════════════════════════════════════════════════════════════════
 section("Swimmers: Create & Rules")
-r = client.post("/swimmers", json={"name":"Hans","teamId":T1ID,"competitionId":CID,"isUnder12":False})
+from datetime import date as _date
+_ADULT_DOB = "1990-05-15"
+_KID_DOB   = (_date.today().replace(year=_date.today().year - 8)).isoformat()
+
+r = client.post("/swimmers", json={"name":"Hans","teamId":T1ID,"competitionId":CID,"dateOfBirth":_ADULT_DOB})
 check("adult swimmer → 201",            s(r) == 201)
 SW1ID = j(r)["data"]["id"]
 check("isUnder12 = False",              j(r)["data"]["isUnder12"] == False)
+check("dateOfBirth stored",             j(r)["data"]["dateOfBirth"] == _ADULT_DOB)
 
-check("under-12 no parent → 400",       s(client.post("/swimmers", json={"name":"Kid","teamId":T1ID,"competitionId":CID,"isUnder12":True})) == 400)
+check("under-12 no parent → 400",       s(client.post("/swimmers", json={"name":"Kid","teamId":T1ID,"competitionId":CID,"dateOfBirth":_KID_DOB})) == 400)
 
-r = client.post("/swimmers", json={"name":"Kid","teamId":T1ID,"competitionId":CID,"isUnder12":True,"parentName":"Dad","parentContact":"+49123"})
+r = client.post("/swimmers", json={"name":"Kid","teamId":T1ID,"competitionId":CID,"dateOfBirth":_KID_DOB,"parentName":"Dad","parentContact":"+49123"})
 check("under-12 with parent → 201",     s(r) == 201)
 check("parentName stored",              j(r)["data"]["parentName"] == "Dad")
 check("isUnder12 = True",               j(r)["data"]["isUnder12"] == True)
 
-r = client.post("/swimmers", json={"name":"Petra","teamId":T2ID,"competitionId":CID,"isUnder12":False})
+r = client.post("/swimmers", json={"name":"Petra","teamId":T2ID,"competitionId":CID,"dateOfBirth":_ADULT_DOB})
 check("T2 swimmer → 201",               s(r) == 201)
 SW2ID = j(r)["data"]["id"]
 
-r = client.post("/swimmers", json={"name":"Karl","teamId":T3ID,"competitionId":CID,"isUnder12":False})
+r = client.post("/swimmers", json={"name":"Karl","teamId":T3ID,"competitionId":CID,"dateOfBirth":_ADULT_DOB})
 check("T3 swimmer → 201",               s(r) == 201)
 SW3ID = j(r)["data"]["id"]
 
-check("wrong competition → 400",        s(client.post("/swimmers", json={"name":"X","teamId":T1ID,"competitionId":"bad","isUnder12":False})) == 400)
+check("wrong competition → 400",        s(client.post("/swimmers", json={"name":"X","teamId":T1ID,"competitionId":"bad","dateOfBirth":_ADULT_DOB})) == 400)
+check("invalid dateOfBirth → 400",      s(client.post("/swimmers", json={"name":"X","teamId":T1ID,"competitionId":CID,"dateOfBirth":"not-a-date"})) == 400)
+# Accept DD.MM.YYYY too
+r = client.post("/swimmers", json={"name":"Eu","teamId":T2ID,"competitionId":CID,"dateOfBirth":"15.05.1990"})
+check("DD.MM.YYYY accepted → 201",      s(r) == 201)
+check("normalised to ISO",              j(r)["data"]["dateOfBirth"] == "1990-05-15")
+client.delete(f"/swimmers/{j(r)['data']['id']}")
 
 section("Swimmers: Update & List")
 r = client.put(f"/swimmers/{SW1ID}", json={"name":"Hans Updated"})
 check("rename swimmer → 200",           s(r) == 200 and j(r)["data"]["name"] == "Hans Updated")
-check("under-12 without parent → 400",  s(client.put(f"/swimmers/{SW1ID}", json={"isUnder12":True})) == 400)
+check("under-12 without parent → 400",  s(client.put(f"/swimmers/{SW1ID}", json={"dateOfBirth":_KID_DOB})) == 400)
 check("GET all swimmers → 4",           len(j(client.get("/swimmers", query_string={"competitionId":CID}))["data"]) == 4)
 check("filter by team → 2",             len(j(client.get("/swimmers", query_string={"teamId":T1ID}))["data"]) == 2)
 check("unknown swimmer PUT → 404",      s(client.put("/swimmers/nope", json={})) == 404)
@@ -389,7 +400,7 @@ check("delete empty team → 200",        s(r) == 200)
 check("team gone",                      len(j(client.get("/teams", query_string={"competitionId":CID,"laneNumber":9}))["data"]) == 0)
 check("delete unknown team → 404",      s(client.delete("/teams/nope")) == 404)
 
-r = client.post("/swimmers", json={"name":"Tmp","teamId":T3ID,"competitionId":CID,"isUnder12":False})
+r = client.post("/swimmers", json={"name":"Tmp","teamId":T3ID,"competitionId":CID,"dateOfBirth":_ADULT_DOB})
 TMPSW = j(r)["data"]["id"]
 check("delete swimmer → 200",           s(client.delete(f"/swimmers/{TMPSW}")) == 200)
 check("delete unknown swimmer → 404",   s(client.delete("/swimmers/nope")) == 404)

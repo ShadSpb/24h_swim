@@ -12,6 +12,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from flask import Blueprint, jsonify
 from database import get_db
+from utils import is_under_12_from_dob
 
 stats_bp = Blueprint("stats", __name__)
 logger   = logging.getLogger(__name__)
@@ -127,7 +128,8 @@ def _swimmer_stats(cid: str, db) -> list[dict]:
         results.append({
             "swimmer":           {"id": sid, "name": s["name"], "teamId": s["team_id"],
                                   "teamName": s["team_name"], "teamColor": s["team_color"],
-                                  "isUnder12": bool(s.get("is_under_12", 0))},
+                                  "dateOfBirth": s.get("date_of_birth"),
+                                  "isUnder12": is_under_12_from_dob(s.get("date_of_birth"))},
             "totalLaps":         total,
             "lateBirdLaps":      late_bird,
             "earlyBirdLaps":     early_bird,

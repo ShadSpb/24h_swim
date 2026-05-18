@@ -7,6 +7,7 @@ import random
 import re
 import logging
 import hashlib
+from datetime import date
 from flask import jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -174,13 +175,29 @@ def serialize_team(row: dict) -> dict:
     }
 
 
+def is_under_12_from_dob(dob) -> bool:
+    """Return True if the ISO `YYYY-MM-DD` DOB makes the swimmer under 12 today.
+    NULL / unknown DOB is treated as not under 12 (rules only apply when DOB known)."""
+    if not dob:
+        return False
+    try:
+        born = date.fromisoformat(str(dob))
+    except (ValueError, TypeError):
+        return False
+    today = date.today()
+    years = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+    return years < 12
+
+
 def serialize_swimmer(row: dict) -> dict:
+    dob = row.get("date_of_birth")
     return {
         "id":            row["id"],
         "name":          row["name"],
         "teamId":        row["team_id"],
         "competitionId": row["competition_id"],
-        "isUnder12":     bool(row.get("is_under_12", 0)),
+        "dateOfBirth":   dob,
+        "isUnder12":     is_under_12_from_dob(dob),
         "parentName":    row.get("parent_name"),
         "parentContact": row.get("parent_contact"),
         "parentPresent": bool(row.get("parent_present", 0)),

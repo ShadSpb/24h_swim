@@ -93,6 +93,7 @@ def init_db() -> None:
     with get_db() as conn:
         conn.executescript(schema)
         _migrate_lap_counts_referee_fk(conn)
+        _migrate_swimmers_date_of_birth(conn)
         _migrate_legacy_user_passwords(conn)
     _harden_sidecar_files(_db_path())
     logger.info("Database initialised at %s", _db_path())
@@ -175,6 +176,64 @@ def _migrate_lap_counts_referee_fk(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_lap_counts_competition ON lap_counts(competition_id);
         CREATE INDEX IF NOT EXISTS idx_lap_counts_team ON lap_counts(team_id);
         CREATE INDEX IF NOT EXISTS idx_lap_counts_timestamp ON lap_counts(competition_id, team_id, timestamp);
+        """
+    )
+
+
+def _migrate_swimmers_date_of_birth(conn: sqlite3.Connection) -> None:
+    """
+    Replace the legacy `is_under_12` boolean with a nullable `date_of_birth`
+    (ISO YYYY-MM-DD) column. Existing rows are migrated with date_of_birth NULL;
+    operators can backfill via the swimmer edit UI.
+    """
+    cols = conn.execute("PRAGMA table_info(swimmers)").fetchall()
+    if not cols:
+        return
+
+    col_names = {c["name"] for c in cols}
+    has_dob = "date_of_birth" in col_names
+    has_legacy = "is_under_12" in col_names
+
+    if has_dob and not has_legacy:
+        return
+
+    logger.info("Applying migration: swimmers.is_under_12 -> date_of_birth")
+    conn.executescript(
+        """
+        CREATE TABLE swimmers_new (
+            id             TEXT PRIMARY KEY,
+            name           TEXT NOT NULL,
+            team_id        TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+            competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+            date_of_birth  TEXT,
+            parent_name    TEXT,
+            parent_contact TEXT,
+            parent_present INTEGER NOT NULL DEFAULT 0,
+            created_at     TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+        );
+        """
+    )
+
+    dob_select = "date_of_birth" if has_dob else "NULL"
+    conn.execute(
+        f"""
+        INSERT INTO swimmers_new (
+            id, name, team_id, competition_id, date_of_birth,
+            parent_name, parent_contact, parent_present, created_at
+        )
+        SELECT
+            id, name, team_id, competition_id, {dob_select},
+            parent_name, parent_contact, parent_present, created_at
+        FROM swimmers
+        """
+    )
+    conn.executescript(
+        """
+        DROP TABLE swimmers;
+        ALTER TABLE swimmers_new RENAME TO swimmers;
+
+        CREATE INDEX IF NOT EXISTS idx_swimmers_competition ON swimmers(competition_id);
+        CREATE INDEX IF NOT EXISTS idx_swimmers_team ON swimmers(team_id);
         """
     )
 
