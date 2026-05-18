@@ -47,7 +47,8 @@ export interface Swimmer {
   name: string;
   teamId: string;
   competitionId: string;
-  isUnder12: boolean;
+  dateOfBirth?: string | null; // ISO YYYY-MM-DD
+  isUnder12: boolean; // derived from dateOfBirth by the backend
   parentName?: string;
   parentContact?: string;
   parentPresent?: boolean;

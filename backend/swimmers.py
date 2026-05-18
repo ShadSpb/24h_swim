@@ -7,12 +7,45 @@ DELETE /swimmers/<id>
 """
 
 import logging
+import re
+from datetime import date
 from flask import Blueprint, request
 from database import get_db
-from utils import new_uuid, ok, created, success, error, not_found, serialize_swimmer
+from utils import (
+    new_uuid, ok, created, success, error, not_found,
+    serialize_swimmer, is_under_12_from_dob,
+)
 
 swimmers_bp = Blueprint("swimmers", __name__)
 logger      = logging.getLogger(__name__)
+
+_DOB_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def _normalize_dob(value):
+    """Accept None / '' / 'YYYY-MM-DD' / 'DD.MM.YYYY'. Returns ISO string or None.
+    Raises ValueError on invalid input."""
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    if _DOB_RE.match(s):
+        try:
+            date.fromisoformat(s)
+        except ValueError as exc:
+            raise ValueError("dateOfBirth must be a valid date") from exc
+        return s
+    m = re.match(r"^(\d{2})\.(\d{2})\.(\d{4})$", s)
+    if m:
+        dd, mm, yyyy = m.groups()
+        iso = f"{yyyy}-{mm}-{dd}"
+        try:
+            date.fromisoformat(iso)
+        except ValueError as exc:
+            raise ValueError("dateOfBirth must be a valid date") from exc
+        return iso
+    raise ValueError("dateOfBirth must be in YYYY-MM-DD or DD.MM.YYYY format")
 
 
 @swimmers_bp.route("/swimmers", methods=["GET"])
@@ -42,15 +75,20 @@ def create_swimmer():
     if missing:
         return error(f"Missing required fields: {', '.join(missing)}")
 
-    is_under_12    = bool(data.get("isUnder12", False))
+    try:
+        dob = _normalize_dob(data.get("dateOfBirth"))
+    except ValueError as exc:
+        return error(str(exc))
+
     parent_name    = (data.get("parentName")    or "").strip() or None
     parent_contact = (data.get("parentContact") or "").strip() or None
 
     # RULES: under-12 swimmers must have both parentName and parentContact
-    if is_under_12 and not parent_name:
-        return error("parentName is required for swimmers under 12")
-    if is_under_12 and not parent_contact:
-        return error("parentContact is required for swimmers under 12")
+    if is_under_12_from_dob(dob):
+        if not parent_name:
+            return error("parentName is required for swimmers under 12")
+        if not parent_contact:
+            return error("parentContact is required for swimmers under 12")
 
     with get_db() as db:
         team = db.execute("SELECT id, competition_id FROM teams WHERE id=?", (data["teamId"],)).fetchone()
@@ -63,10 +101,10 @@ def create_swimmer():
     with get_db() as db:
         db.execute(
             """INSERT INTO swimmers
-               (id, name, team_id, competition_id, is_under_12, parent_name, parent_contact, parent_present)
+               (id, name, team_id, competition_id, date_of_birth, parent_name, parent_contact, parent_present)
                VALUES (?,?,?,?,?,?,?,?)""",
             (sid, data["name"], data["teamId"], data["competitionId"],
-             int(is_under_12), parent_name, parent_contact,
+             dob, parent_name, parent_contact,
              int(bool(data.get("parentPresent", False)))),
         )
         db.commit()
@@ -86,19 +124,27 @@ def update_swimmer(sid):
     data = request.get_json(silent=True) or {}
     ex   = dict(existing)
 
-    is_under_12    = bool(data.get("isUnder12",     bool(ex["is_under_12"])))
+    try:
+        if "dateOfBirth" in data:
+            dob = _normalize_dob(data.get("dateOfBirth"))
+        else:
+            dob = ex.get("date_of_birth")
+    except ValueError as exc:
+        return error(str(exc))
+
     parent_name    = (data.get("parentName",    ex.get("parent_name"))    or "").strip() or None
     parent_contact = (data.get("parentContact", ex.get("parent_contact")) or "").strip() or None
 
-    if is_under_12 and not parent_name:
-        return error("parentName is required for swimmers under 12")
-    if is_under_12 and not parent_contact:
-        return error("parentContact is required for swimmers under 12")
+    if is_under_12_from_dob(dob):
+        if not parent_name:
+            return error("parentName is required for swimmers under 12")
+        if not parent_contact:
+            return error("parentContact is required for swimmers under 12")
 
     with get_db() as db:
         db.execute(
-            "UPDATE swimmers SET name=?, is_under_12=?, parent_name=?, parent_contact=?, parent_present=? WHERE id=?",
-            (data.get("name", ex["name"]), int(is_under_12), parent_name, parent_contact,
+            "UPDATE swimmers SET name=?, date_of_birth=?, parent_name=?, parent_contact=?, parent_present=? WHERE id=?",
+            (data.get("name", ex["name"]), dob, parent_name, parent_contact,
              int(bool(data.get("parentPresent", bool(ex.get("parent_present", 0))))), sid),
         )
         row = db.execute("SELECT * FROM swimmers WHERE id=?", (sid,)).fetchone()

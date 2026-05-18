@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS swimmers (
     name           TEXT NOT NULL,
     team_id        TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
     competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
-    is_under_12    INTEGER NOT NULL DEFAULT 0,
+    date_of_birth  TEXT,                    -- ISO YYYY-MM-DD, nullable for legacy records
     parent_name    TEXT,
     parent_contact TEXT,
     parent_present INTEGER NOT NULL DEFAULT 0,

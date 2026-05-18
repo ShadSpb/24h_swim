@@ -16,7 +16,7 @@ import {
   canCountLap,
   LapCount
 } from '@/lib/api';
-import { Waves, AlertCircle, UserCheck, UserX, RefreshCw } from 'lucide-react';
+import { Waves, AlertCircle, UserCheck, UserX, RefreshCw, Repeat } from 'lucide-react';
 
 export default function RefereeDashboard() {
   const { isAuthenticated, user } = useAuth();
@@ -39,6 +39,7 @@ export default function RefereeDashboard() {
   const [selectedLane, setSelectedLane] = useState<string>('');
   const [selectedTeamForSwimmer, setSelectedTeamForSwimmer] = useState<string>('');
   const [laneFilter, setLaneFilter] = useState<string>('all');
+  const [changeSwimmerSession, setChangeSwimmerSession] = useState<SwimSession | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'referee') {
@@ -220,6 +221,43 @@ export default function RefereeDashboard() {
       toast({ title: `${getSwimmerName(session.swimmerId)} ${t.refereeDashboard.sessionEnded}` });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to end swimmer session';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
+  const swapSwimmer = async (session: SwimSession, nextSwimmer: Swimmer) => {
+    if (!selectedCompetition || !assignedReferee) return;
+    if (nextSwimmer.id === session.swimmerId) {
+      setChangeSwimmerSession(null);
+      return;
+    }
+    try {
+      // End the current session first — backend enforces one active swimmer per team.
+      await dataApi.saveSwimSession({
+        ...session,
+        endTime: new Date().toISOString(),
+        isActive: false,
+      });
+
+      const newSession: SwimSession = {
+        id: crypto.randomUUID(),
+        competitionId: selectedCompetition.id,
+        swimmerId: nextSwimmer.id,
+        teamId: session.teamId,
+        laneNumber: session.laneNumber,
+        startTime: new Date().toISOString(),
+        endTime: null,
+        lapCount: 0,
+        isActive: true,
+      };
+      await dataApi.saveSwimSession(newSession);
+
+      const sessions = await dataApi.getActiveSwimSessions(selectedCompetition.id);
+      setActiveSessions(sessions.filter(s => s.isActive));
+      setChangeSwimmerSession(null);
+      toast({ title: `${t.refereeDashboard.swimmerChanged}: ${nextSwimmer.name}` });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to change swimmer';
       toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
@@ -607,14 +645,24 @@ export default function RefereeDashboard() {
                                       </CardDescription>
                                     </div>
                                   </div>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => { void endSwimmerSession(session); }}
-                                  >
-                                    <UserX className="h-4 w-4 mr-1" />
-                                    {t.refereeDashboard.end}
-                                  </Button>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => setChangeSwimmerSession(session)}
+                                    >
+                                      <Repeat className="h-4 w-4 mr-1" />
+                                      {t.refereeDashboard.changeSwimmer}
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => { void endSwimmerSession(session); }}
+                                    >
+                                      <UserX className="h-4 w-4 mr-1" />
+                                      {t.refereeDashboard.end}
+                                    </Button>
+                                  </div>
                                 </div>
                               </CardHeader>
                               <CardContent>
@@ -658,6 +706,52 @@ export default function RefereeDashboard() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Change Swimmer Dialog */}
+            <Dialog
+              open={!!changeSwimmerSession}
+              onOpenChange={(open) => { if (!open) setChangeSwimmerSession(null); }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {t.refereeDashboard.changeSwimmer}
+                    {changeSwimmerSession && ` — ${getTeamName(changeSwimmerSession.teamId)}`}
+                  </DialogTitle>
+                  <DialogDescription>{t.refereeDashboard.changeSwimmerDesc}</DialogDescription>
+                </DialogHeader>
+                {changeSwimmerSession && (() => {
+                  const candidates = getSwimmersForTeam(changeSwimmerSession.teamId)
+                    .filter(sw => sw.id !== changeSwimmerSession.swimmerId);
+                  if (candidates.length === 0) {
+                    return (
+                      <p className="text-sm text-muted-foreground py-4">
+                        {t.refereeDashboard.changeSwimmerNoOthers}
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="space-y-2 max-h-72 overflow-y-auto py-2">
+                      {candidates.map(sw => (
+                        <Button
+                          key={sw.id}
+                          variant="outline"
+                          className="w-full justify-start"
+                          onClick={() => { void swapSwimmer(changeSwimmerSession, sw); }}
+                        >
+                          {sw.name}
+                          {sw.isUnder12 && (
+                            <Badge variant="secondary" className="ml-2">
+                              {t.refereeDashboard.underTwelve}
+                            </Badge>
+                          )}
+                        </Button>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </DialogContent>
+            </Dialog>
           </div>
         )}
       </div>
