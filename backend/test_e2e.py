@@ -437,6 +437,38 @@ section("Competition Lifecycle: Complete & Cascade Delete")
 r = client.put(f"/competitions/{CID}", json={"status":"completed","actualEndTime":"2026-07-02T10:00:00Z"})
 check("→ completed → 200",              s(r) == 200)
 check("actualEndTime stored",           j(r)["data"]["actualEndTime"] == "2026-07-02T10:00:00Z")
+# Slug released on completion: original surname slug is dropped in favor
+# of a short UUID-derived slug, so the name can be reused by future competitions.
+COMPLETED_SLUG = j(r)["data"].get("slug") or ""
+check("slug changed on completion",     COMPLETED_SLUG != CSLUG, f"old={CSLUG} new={COMPLETED_SLUG}")
+check("released slug not a pool name",  COMPLETED_SLUG not in (
+    "einstein","planck","heisenberg","kepler","hertz","roentgen","bunsen","diesel","benz",
+    "daimler","zeppelin","liebig","hahn","helmholtz","koch","virchow","ohm","fahrenheit",
+    "gauss","riemann","hilbert","weierstrass","born","bach","beethoven","brahms","wagner",
+    "schumann","mendelssohn","handel","hindemith","orff","weber","telemann","goethe",
+    "schiller","mann","hesse","brecht","grimm","heine","fontane","lessing","boll","grass",
+    "kleist","remarque","kant","hegel","nietzsche","schopenhauer","leibniz","husserl",
+    "heidegger","fichte","frege","durer","holbein","friedrich","beuys","richter","kollwitz",
+    "kirchner","beckenbauer","becker","schumacher","witt","graf","klopp","neuer","mueller",
+    "klinsmann",
+))
+check("ended competition still GET-able by new slug",
+      s(client.get(f"/competitions/{COMPLETED_SLUG}")) == 200)
+# Freed name should be available again: create a new competition and the slug
+# pool now lacks the original CSLUG as an in-use slug.
+r_free = client.post("/competitions", json={
+    "name":"After Free","date":"2026-07-03","startTime":"10:00",
+    "location":"X","organizerId":ADMIN_ID,"numberOfLanes":1,
+})
+check("create after free → 201",        s(r_free) == 201)
+# We can't deterministically force the released name to be the next pick
+# (random), but at minimum it must be eligible — verify by hand-allocating
+# it via an update (slug can stay as-is; the constraint is just that no
+# active competition holds CSLUG).
+active_slugs = {x.get("slug") for x in j(client.get("/competitions", query_string={"organizerId":ADMIN_ID}))["data"]
+                if x.get("status") != "completed" and x.get("status") != "stopped"}
+check("released name not held by any active",   CSLUG not in active_slugs)
+client.delete(f"/competitions/{j(r_free)['data']['id']}")
 
 r = client.delete(f"/competitions/{CID}")
 check("DELETE comp → 200",              s(r) == 200, s(r))

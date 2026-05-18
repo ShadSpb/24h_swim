@@ -300,17 +300,34 @@ def _migrate_competitions_slug(conn: sqlite3.Connection) -> None:
             "SELECT slug FROM competitions WHERE slug IS NOT NULL AND slug != ''"
         ).fetchall()
     }
+
+    def _short(cid_str: str) -> str:
+        compact = cid_str.replace("-", "")[:8]
+        candidate = compact or _uuid.uuid4().hex[:8]
+        while candidate in used:
+            candidate = _uuid.uuid4().hex[:8]
+        return candidate
+
     for (cid,) in rows:
         available = [s for s in pool if s not in used]
-        if available:
-            slug = _random.choice(available)
-        else:
-            slug = f"{_random.choice(pool)}-{_uuid.uuid4().hex[:4]}"
-            while slug in used:
-                slug = f"{_random.choice(pool)}-{_uuid.uuid4().hex[:4]}"
+        slug = _random.choice(available) if available else _short(cid)
         used.add(slug)
         conn.execute("UPDATE competitions SET slug = ? WHERE id = ?", (slug, cid))
         logger.info("Backfilled slug for competition %s -> %s", cid, slug)
+
+    # One-off: release surname slugs from already-completed/stopped
+    # competitions so the names become reusable. Each ended row gets a short
+    # UUID slug instead. The famous-surname pool is the source of truth here.
+    pool_set = set(pool)
+    for (cid, slug) in conn.execute(
+        "SELECT id, slug FROM competitions WHERE status IN ('completed', 'stopped') AND slug IS NOT NULL"
+    ).fetchall():
+        if slug in pool_set:
+            new_slug = _short(cid)
+            used.discard(slug)
+            used.add(new_slug)
+            conn.execute("UPDATE competitions SET slug = ? WHERE id = ?", (new_slug, cid))
+            logger.info("Released slug %s -> %s for ended competition %s", slug, new_slug, cid)
 
 
 def row_to_dict(row: sqlite3.Row) -> dict:

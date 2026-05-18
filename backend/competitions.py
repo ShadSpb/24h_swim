@@ -12,8 +12,27 @@ from flask import Blueprint, request
 from database import get_db
 from utils import (
     new_uuid, ok, created, success, error, not_found,
-    serialize_competition, generate_competition_slug,
+    serialize_competition, generate_competition_slug, short_uuid_slug,
 )
+
+ENDED_STATUSES = ("completed", "stopped")
+
+
+def _allocate_short_slug(db, comp_id: str) -> str:
+    """Pick a short-UUID slug guaranteed unique against current rows."""
+    used = {
+        r[0] for r in db.execute(
+            "SELECT slug FROM competitions WHERE slug IS NOT NULL AND slug != '' AND id != ?",
+            (comp_id,),
+        ).fetchall()
+    }
+    candidate = short_uuid_slug(comp_id)
+    for _ in range(16):
+        if candidate not in used:
+            return candidate
+        candidate = short_uuid_slug(None)
+    # Defensive fallback
+    return f"comp-{candidate}"
 
 competitions_bp = Blueprint("competitions", __name__)
 logger = logging.getLogger(__name__)
@@ -97,7 +116,7 @@ def create_competition():
 
     cid = new_uuid()
     with get_db() as db:
-        slug = generate_competition_slug(db)
+        slug = generate_competition_slug(db, comp_id=cid)
         db.execute(
             """INSERT INTO competitions
                (id, slug, name, description, date, start_time, end_time, location,
@@ -153,10 +172,26 @@ def update_competition(cid):
     except ValueError as exc:
         return error(str(exc))
 
+    # Release the famous-surname slug when the competition ends so the name
+    # is available for the next competition. The ended competition keeps a
+    # stable, accessible link via a short UUID slug.
+    prev_status = ex["status"]
+    current_slug = ex.get("slug") or ""
+    transitioning_to_ended = (
+        new_status in ENDED_STATUSES and prev_status not in ENDED_STATUSES
+    )
+    if transitioning_to_ended:
+        with get_db() as db:
+            new_slug = _allocate_short_slug(db, cid)
+        if current_slug != new_slug:
+            logger.info("Releasing slug %s -> %s on status=%s", current_slug, new_slug, new_status)
+            current_slug = new_slug
+
     with get_db() as db:
         db.execute(
             """UPDATE competitions SET
                name                = ?,
+               slug                = ?,
                description         = ?,
                date                = ?,
                start_time          = ?,
@@ -177,6 +212,7 @@ def update_competition(cid):
                WHERE id = ?""",
             (
                 data.get("name",               ex["name"]),
+                current_slug,
                 data.get("description",        ex.get("description", "")),
                 data.get("date",               ex["date"]),
                 data.get("startTime",          ex["start_time"]),

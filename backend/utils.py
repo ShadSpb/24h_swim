@@ -72,25 +72,41 @@ FAMOUS_GERMAN_SURNAMES = (
 )
 
 
-def generate_competition_slug(db, max_pool_attempts: int = 4) -> str:
+def short_uuid_slug(comp_id: str | None = None) -> str:
     """
-    Pick an unused surname slug for a new competition. Falls back to
-    '<surname>-<4-char-suffix>' if all names happen to collide (extremely
-    rare given the pool size; defensive only).
+    Compact UUID-derived slug used as plan B (pool exhausted) and as the
+    post-completion identifier once a name slug is released. Prefers the
+    first 8 hex chars of the competition's own id when available, falling
+    back to a fresh random 8-hex string."""
+    if comp_id:
+        compact = comp_id.replace("-", "")[:8]
+        if compact:
+            return compact
+    return uuid.uuid4().hex[:8]
+
+
+def generate_competition_slug(db, comp_id: str | None = None) -> str:
     """
-    used = {row[0] for row in db.execute("SELECT slug FROM competitions WHERE slug IS NOT NULL").fetchall()}
+    Pick an unused famous-German surname for a new competition.
+    Plan B (whole pool already in use): short UUID slug — never a
+    surname with a numeric suffix.
+    """
+    used = {
+        row[0] for row in db.execute(
+            "SELECT slug FROM competitions WHERE slug IS NOT NULL AND slug != ''"
+        ).fetchall()
+    }
     available = [s for s in FAMOUS_GERMAN_SURNAMES if s not in used]
     if available:
         return random.choice(available)
-    # Pool exhausted — append a short suffix until unique
-    for _ in range(max_pool_attempts):
-        base = random.choice(FAMOUS_GERMAN_SURNAMES)
-        suffix = uuid.uuid4().hex[:4]
-        candidate = f"{base}-{suffix}"
+    # Plan B — short UUID slug, retried until unique
+    for _ in range(8):
+        candidate = short_uuid_slug(comp_id)
         if candidate not in used:
             return candidate
-    # Last-resort guaranteed-unique fallback
-    return f"comp-{uuid.uuid4().hex[:8]}"
+        comp_id = None  # force a fresh random one on retry
+    # Defensive last-resort full-UUID; effectively never reached
+    return uuid.uuid4().hex[:12]
 
 
 def sha256_hex(value: str) -> str:
