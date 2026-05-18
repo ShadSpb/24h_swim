@@ -105,6 +105,13 @@ check("doubleCountTimeout = 5",         C["doubleCountTimeout"] == 5)
 check("earlyBirdHour default = 5",      C["earlyBirdHour"] == 5)
 check("lateBirdHour default = 0",       C["lateBirdHour"] == 0)
 check("birdWindowMinutes default = 60", C["birdWindowMinutes"] == 60)
+CSLUG = C.get("slug") or ""
+check("slug present + non-empty",       bool(CSLUG) and CSLUG != CID, CSLUG)
+check("slug is ASCII lowercase",        CSLUG == CSLUG.lower() and all(c.isalnum() or c == "-" for c in CSLUG))
+# GET by slug works (same payload as GET by id)
+r_slug = client.get(f"/competitions/{CSLUG}")
+check("GET by slug → 200",              s(r_slug) == 200)
+check("GET by slug returns same id",    j(r_slug)["data"]["id"] == CID)
 # custom bird config + validation
 r2 = client.post("/competitions", json={
     "name":"Custom Bird","date":"2026-07-02","startTime":"10:00",

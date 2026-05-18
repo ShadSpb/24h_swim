@@ -45,6 +45,54 @@ def new_uuid() -> str:
     return str(uuid.uuid4())
 
 
+# Famous German surnames used as human-friendly competition slugs.
+# Scientists, composers, writers, philosophers, artists, athletes — no
+# politicians (per organizer preference). Stored lowercase ASCII.
+FAMOUS_GERMAN_SURNAMES = (
+    # Scientists & inventors
+    "einstein", "planck", "heisenberg", "kepler", "hertz", "roentgen",
+    "bunsen", "diesel", "benz", "daimler", "zeppelin", "liebig", "hahn",
+    "helmholtz", "koch", "virchow", "ohm", "fahrenheit", "gauss", "riemann",
+    "hilbert", "weierstrass", "born",
+    # Composers
+    "bach", "beethoven", "brahms", "wagner", "schumann", "mendelssohn",
+    "handel", "hindemith", "orff", "weber", "telemann",
+    # Writers
+    "goethe", "schiller", "mann", "hesse", "brecht", "grimm", "heine",
+    "fontane", "lessing", "boll", "grass", "kleist", "remarque",
+    # Philosophers
+    "kant", "hegel", "nietzsche", "schopenhauer", "leibniz", "husserl",
+    "heidegger", "fichte", "frege",
+    # Artists
+    "durer", "holbein", "friedrich", "beuys", "richter", "kollwitz",
+    "kirchner",
+    # Athletes
+    "beckenbauer", "becker", "schumacher", "witt", "graf", "klopp",
+    "neuer", "mueller", "klinsmann",
+)
+
+
+def generate_competition_slug(db, max_pool_attempts: int = 4) -> str:
+    """
+    Pick an unused surname slug for a new competition. Falls back to
+    '<surname>-<4-char-suffix>' if all names happen to collide (extremely
+    rare given the pool size; defensive only).
+    """
+    used = {row[0] for row in db.execute("SELECT slug FROM competitions WHERE slug IS NOT NULL").fetchall()}
+    available = [s for s in FAMOUS_GERMAN_SURNAMES if s not in used]
+    if available:
+        return random.choice(available)
+    # Pool exhausted — append a short suffix until unique
+    for _ in range(max_pool_attempts):
+        base = random.choice(FAMOUS_GERMAN_SURNAMES)
+        suffix = uuid.uuid4().hex[:4]
+        candidate = f"{base}-{suffix}"
+        if candidate not in used:
+            return candidate
+    # Last-resort guaranteed-unique fallback
+    return f"comp-{uuid.uuid4().hex[:8]}"
+
+
 def sha256_hex(value: str) -> str:
     return hashlib.sha256((value or "").encode("utf-8")).hexdigest()
 
@@ -143,6 +191,7 @@ def is_valid_uuid(value: str) -> bool:
 def serialize_competition(row: dict) -> dict:
     return {
         "id":                 row["id"],
+        "slug":               row.get("slug") or row["id"],
         "name":               row["name"],
         "description":        row.get("description", ""),
         "date":               row["date"],

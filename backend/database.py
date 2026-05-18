@@ -95,6 +95,7 @@ def init_db() -> None:
         _migrate_lap_counts_referee_fk(conn)
         _migrate_swimmers_date_of_birth(conn)
         _migrate_competitions_bird_windows(conn)
+        _migrate_competitions_slug(conn)
         _migrate_legacy_user_passwords(conn)
     _harden_sidecar_files(_db_path())
     logger.info("Database initialised at %s", _db_path())
@@ -256,6 +257,60 @@ def _migrate_competitions_bird_windows(conn: sqlite3.Connection) -> None:
         if col not in cols:
             logger.info("Applying migration: competitions ADD COLUMN %s", col)
             conn.execute(f"ALTER TABLE competitions ADD COLUMN {col} {ddl}")
+
+
+def _migrate_competitions_slug(conn: sqlite3.Connection) -> None:
+    """
+    Add competitions.slug (UNIQUE) and backfill existing rows with a
+    famous-German-surname slug, falling back to '<surname>-<short>' if the
+    pool would collide. The unique index is added together with the column.
+    """
+    cols = {c["name"] for c in conn.execute("PRAGMA table_info(competitions)").fetchall()}
+    if "slug" not in cols:
+        logger.info("Applying migration: competitions ADD COLUMN slug")
+        conn.execute("ALTER TABLE competitions ADD COLUMN slug TEXT")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_competitions_slug ON competitions(slug)")
+
+    # Backfill any NULL slugs deterministically; avoid importing utils here
+    # to keep database.py self-contained.
+    rows = conn.execute(
+        "SELECT id FROM competitions WHERE slug IS NULL OR slug = ''"
+    ).fetchall()
+    if not rows:
+        return
+
+    import random as _random
+    import uuid as _uuid
+    pool = (
+        "einstein", "planck", "heisenberg", "kepler", "hertz", "roentgen",
+        "bunsen", "diesel", "benz", "daimler", "zeppelin", "liebig", "hahn",
+        "helmholtz", "koch", "virchow", "ohm", "fahrenheit", "gauss", "riemann",
+        "hilbert", "weierstrass", "born", "bach", "beethoven", "brahms",
+        "wagner", "schumann", "mendelssohn", "handel", "hindemith", "orff",
+        "weber", "telemann", "goethe", "schiller", "mann", "hesse", "brecht",
+        "grimm", "heine", "fontane", "lessing", "boll", "grass", "kleist",
+        "remarque", "kant", "hegel", "nietzsche", "schopenhauer", "leibniz",
+        "husserl", "heidegger", "fichte", "frege", "durer", "holbein",
+        "friedrich", "beuys", "richter", "kollwitz", "kirchner",
+        "beckenbauer", "becker", "schumacher", "witt", "graf", "klopp",
+        "neuer", "mueller", "klinsmann",
+    )
+    used = {
+        r[0] for r in conn.execute(
+            "SELECT slug FROM competitions WHERE slug IS NOT NULL AND slug != ''"
+        ).fetchall()
+    }
+    for (cid,) in rows:
+        available = [s for s in pool if s not in used]
+        if available:
+            slug = _random.choice(available)
+        else:
+            slug = f"{_random.choice(pool)}-{_uuid.uuid4().hex[:4]}"
+            while slug in used:
+                slug = f"{_random.choice(pool)}-{_uuid.uuid4().hex[:4]}"
+        used.add(slug)
+        conn.execute("UPDATE competitions SET slug = ? WHERE id = ?", (slug, cid))
+        logger.info("Backfilled slug for competition %s -> %s", cid, slug)
 
 
 def row_to_dict(row: sqlite3.Row) -> dict:

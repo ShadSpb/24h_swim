@@ -478,8 +478,8 @@ export default function Monitor() {
                 </CardHeader>
                 <CardContent className="flex flex-col md:flex-row items-center gap-4">
                   <div className="bg-white p-3 rounded-lg">
-                    <QRCodeSVG 
-                      value={`${siteDomain}/monitor/${selectedCompetition.id}`}
+                    <QRCodeSVG
+                      value={`${siteDomain}/monitor/${selectedCompetition.slug || selectedCompetition.id}`}
                       size={120}
                       level="M"
                     />
@@ -487,7 +487,7 @@ export default function Monitor() {
                   <div className="text-center md:text-left">
                     <p className="text-sm text-muted-foreground mb-1">Direct link:</p>
                     <code className="text-xs bg-muted px-2 py-1 rounded break-all">
-                      {siteDomain}/monitor/{selectedCompetition.id}
+                      {siteDomain}/monitor/{selectedCompetition.slug || selectedCompetition.id}
                     </code>
                   </div>
                 </CardContent>

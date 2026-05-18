@@ -12,7 +12,7 @@ from flask import Blueprint, request
 from database import get_db
 from utils import (
     new_uuid, ok, created, success, error, not_found,
-    serialize_competition,
+    serialize_competition, generate_competition_slug,
 )
 
 competitions_bp = Blueprint("competitions", __name__)
@@ -64,7 +64,9 @@ def list_competitions():
 @competitions_bp.route("/competitions/<cid>", methods=["GET"])
 def get_competition(cid):
     with get_db() as db:
-        row = db.execute("SELECT * FROM competitions WHERE id = ?", (cid,)).fetchone()
+        row = db.execute(
+            "SELECT * FROM competitions WHERE id = ? OR slug = ?", (cid, cid),
+        ).fetchone()
     if not row:
         return not_found("Competition")
     return ok(serialize_competition(dict(row)))
@@ -95,15 +97,17 @@ def create_competition():
 
     cid = new_uuid()
     with get_db() as db:
+        slug = generate_competition_slug(db)
         db.execute(
             """INSERT INTO competitions
-               (id, name, description, date, start_time, end_time, location,
+               (id, slug, name, description, date, start_time, end_time, location,
                 number_of_lanes, lane_length, double_count_timeout,
                 organizer_id, status,
                 early_bird_hour, late_bird_hour, bird_window_minutes)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 cid,
+                slug,
                 data["name"],
                 data.get("description", ""),
                 data["date"],

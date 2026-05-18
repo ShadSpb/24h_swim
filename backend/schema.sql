@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Competitions
 CREATE TABLE IF NOT EXISTS competitions (
     id                   TEXT PRIMARY KEY,  -- UUID
+    slug                 TEXT UNIQUE,       -- human-friendly URL slug
     name                 TEXT NOT NULL,
     description          TEXT NOT NULL DEFAULT '',
     date                 TEXT NOT NULL,     -- YYYY-MM-DD

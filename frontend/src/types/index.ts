@@ -13,6 +13,7 @@ export interface User {
 
 export interface Competition {
   id: string;
+  slug: string;          // human-friendly URL slug (famous-German surname)
   name: string;
   description: string;
   date: string;
