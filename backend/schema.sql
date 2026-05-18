@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Competitions
 CREATE TABLE IF NOT EXISTS competitions (
     id                   TEXT PRIMARY KEY,  -- UUID
+    slug                 TEXT UNIQUE,       -- human-friendly URL slug
     name                 TEXT NOT NULL,
     description          TEXT NOT NULL DEFAULT '',
     date                 TEXT NOT NULL,     -- YYYY-MM-DD
@@ -32,6 +33,9 @@ CREATE TABLE IF NOT EXISTS competitions (
                              CHECK(status IN ('upcoming','active','paused','completed','stopped')),
     auto_start           INTEGER NOT NULL DEFAULT 0,
     auto_finish          INTEGER NOT NULL DEFAULT 0,
+    early_bird_hour      INTEGER NOT NULL DEFAULT 5,   -- local-time hour (0-23) when window opens
+    late_bird_hour       INTEGER NOT NULL DEFAULT 0,
+    bird_window_minutes  INTEGER NOT NULL DEFAULT 60,
     actual_start_time    TEXT,
     actual_end_time      TEXT,
     results_pdf          TEXT,              -- base64 data URI

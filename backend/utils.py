@@ -45,6 +45,70 @@ def new_uuid() -> str:
     return str(uuid.uuid4())
 
 
+# Famous German surnames used as human-friendly competition slugs.
+# Scientists, composers, writers, philosophers, artists, athletes — no
+# politicians (per organizer preference). Stored lowercase ASCII.
+FAMOUS_GERMAN_SURNAMES = (
+    # Scientists & inventors
+    "einstein", "planck", "heisenberg", "kepler", "hertz", "roentgen",
+    "bunsen", "diesel", "benz", "daimler", "zeppelin", "liebig", "hahn",
+    "helmholtz", "koch", "virchow", "ohm", "fahrenheit", "gauss", "riemann",
+    "hilbert", "weierstrass", "born",
+    # Composers
+    "bach", "beethoven", "brahms", "wagner", "schumann", "mendelssohn",
+    "handel", "hindemith", "orff", "weber", "telemann",
+    # Writers
+    "goethe", "schiller", "mann", "hesse", "brecht", "grimm", "heine",
+    "fontane", "lessing", "boll", "grass", "kleist", "remarque",
+    # Philosophers
+    "kant", "hegel", "nietzsche", "schopenhauer", "leibniz", "husserl",
+    "heidegger", "fichte", "frege",
+    # Artists
+    "durer", "holbein", "friedrich", "beuys", "richter", "kollwitz",
+    "kirchner",
+    # Athletes
+    "beckenbauer", "becker", "schumacher", "witt", "graf", "klopp",
+    "neuer", "mueller", "klinsmann",
+)
+
+
+def short_uuid_slug(comp_id: str | None = None) -> str:
+    """
+    Compact UUID-derived slug used as plan B (pool exhausted) and as the
+    post-completion identifier once a name slug is released. Prefers the
+    first 8 hex chars of the competition's own id when available, falling
+    back to a fresh random 8-hex string."""
+    if comp_id:
+        compact = comp_id.replace("-", "")[:8]
+        if compact:
+            return compact
+    return uuid.uuid4().hex[:8]
+
+
+def generate_competition_slug(db, comp_id: str | None = None) -> str:
+    """
+    Pick an unused famous-German surname for a new competition.
+    Plan B (whole pool already in use): short UUID slug — never a
+    surname with a numeric suffix.
+    """
+    used = {
+        row[0] for row in db.execute(
+            "SELECT slug FROM competitions WHERE slug IS NOT NULL AND slug != ''"
+        ).fetchall()
+    }
+    available = [s for s in FAMOUS_GERMAN_SURNAMES if s not in used]
+    if available:
+        return random.choice(available)
+    # Plan B — short UUID slug, retried until unique
+    for _ in range(8):
+        candidate = short_uuid_slug(comp_id)
+        if candidate not in used:
+            return candidate
+        comp_id = None  # force a fresh random one on retry
+    # Defensive last-resort full-UUID; effectively never reached
+    return uuid.uuid4().hex[:12]
+
+
 def sha256_hex(value: str) -> str:
     return hashlib.sha256((value or "").encode("utf-8")).hexdigest()
 
@@ -143,6 +207,7 @@ def is_valid_uuid(value: str) -> bool:
 def serialize_competition(row: dict) -> dict:
     return {
         "id":                 row["id"],
+        "slug":               row.get("slug") or row["id"],
         "name":               row["name"],
         "description":        row.get("description", ""),
         "date":               row["date"],
@@ -156,6 +221,9 @@ def serialize_competition(row: dict) -> dict:
         "status":             row["status"],
         "autoStart":          bool(row.get("auto_start", 0)),
         "autoFinish":         bool(row.get("auto_finish", 0)),
+        "earlyBirdHour":      int(row.get("early_bird_hour", 5) or 0),
+        "lateBirdHour":       int(row.get("late_bird_hour", 0) or 0),
+        "birdWindowMinutes":  int(row.get("bird_window_minutes", 60) or 60),
         "actualStartTime":    row.get("actual_start_time"),
         "actualEndTime":      row.get("actual_end_time"),
         "resultsPdf":         row.get("results_pdf"),

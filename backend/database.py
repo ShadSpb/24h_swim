@@ -94,6 +94,8 @@ def init_db() -> None:
         conn.executescript(schema)
         _migrate_lap_counts_referee_fk(conn)
         _migrate_swimmers_date_of_birth(conn)
+        _migrate_competitions_bird_windows(conn)
+        _migrate_competitions_slug(conn)
         _migrate_legacy_user_passwords(conn)
     _harden_sidecar_files(_db_path())
     logger.info("Database initialised at %s", _db_path())
@@ -236,6 +238,96 @@ def _migrate_swimmers_date_of_birth(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_swimmers_team ON swimmers(team_id);
         """
     )
+
+
+def _migrate_competitions_bird_windows(conn: sqlite3.Connection) -> None:
+    """
+    Add per-competition early/late-bird configuration columns if missing.
+    Defaults preserve historical behavior (early=05:00, late=00:00, 60-min window).
+    """
+    cols = {c["name"] for c in conn.execute("PRAGMA table_info(competitions)").fetchall()}
+    if not cols:
+        return
+    additions = (
+        ("early_bird_hour",     "INTEGER NOT NULL DEFAULT 5"),
+        ("late_bird_hour",      "INTEGER NOT NULL DEFAULT 0"),
+        ("bird_window_minutes", "INTEGER NOT NULL DEFAULT 60"),
+    )
+    for col, ddl in additions:
+        if col not in cols:
+            logger.info("Applying migration: competitions ADD COLUMN %s", col)
+            conn.execute(f"ALTER TABLE competitions ADD COLUMN {col} {ddl}")
+
+
+def _migrate_competitions_slug(conn: sqlite3.Connection) -> None:
+    """
+    Add competitions.slug (UNIQUE) and backfill existing rows with a
+    famous-German-surname slug, falling back to '<surname>-<short>' if the
+    pool would collide. The unique index is added together with the column.
+    """
+    cols = {c["name"] for c in conn.execute("PRAGMA table_info(competitions)").fetchall()}
+    if "slug" not in cols:
+        logger.info("Applying migration: competitions ADD COLUMN slug")
+        conn.execute("ALTER TABLE competitions ADD COLUMN slug TEXT")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_competitions_slug ON competitions(slug)")
+
+    # Backfill any NULL slugs deterministically; avoid importing utils here
+    # to keep database.py self-contained.
+    rows = conn.execute(
+        "SELECT id FROM competitions WHERE slug IS NULL OR slug = ''"
+    ).fetchall()
+    if not rows:
+        return
+
+    import random as _random
+    import uuid as _uuid
+    pool = (
+        "einstein", "planck", "heisenberg", "kepler", "hertz", "roentgen",
+        "bunsen", "diesel", "benz", "daimler", "zeppelin", "liebig", "hahn",
+        "helmholtz", "koch", "virchow", "ohm", "fahrenheit", "gauss", "riemann",
+        "hilbert", "weierstrass", "born", "bach", "beethoven", "brahms",
+        "wagner", "schumann", "mendelssohn", "handel", "hindemith", "orff",
+        "weber", "telemann", "goethe", "schiller", "mann", "hesse", "brecht",
+        "grimm", "heine", "fontane", "lessing", "boll", "grass", "kleist",
+        "remarque", "kant", "hegel", "nietzsche", "schopenhauer", "leibniz",
+        "husserl", "heidegger", "fichte", "frege", "durer", "holbein",
+        "friedrich", "beuys", "richter", "kollwitz", "kirchner",
+        "beckenbauer", "becker", "schumacher", "witt", "graf", "klopp",
+        "neuer", "mueller", "klinsmann",
+    )
+    used = {
+        r[0] for r in conn.execute(
+            "SELECT slug FROM competitions WHERE slug IS NOT NULL AND slug != ''"
+        ).fetchall()
+    }
+
+    def _short(cid_str: str) -> str:
+        compact = cid_str.replace("-", "")[:8]
+        candidate = compact or _uuid.uuid4().hex[:8]
+        while candidate in used:
+            candidate = _uuid.uuid4().hex[:8]
+        return candidate
+
+    for (cid,) in rows:
+        available = [s for s in pool if s not in used]
+        slug = _random.choice(available) if available else _short(cid)
+        used.add(slug)
+        conn.execute("UPDATE competitions SET slug = ? WHERE id = ?", (slug, cid))
+        logger.info("Backfilled slug for competition %s -> %s", cid, slug)
+
+    # One-off: release surname slugs from already-completed/stopped
+    # competitions so the names become reusable. Each ended row gets a short
+    # UUID slug instead. The famous-surname pool is the source of truth here.
+    pool_set = set(pool)
+    for (cid, slug) in conn.execute(
+        "SELECT id, slug FROM competitions WHERE status IN ('completed', 'stopped') AND slug IS NOT NULL"
+    ).fetchall():
+        if slug in pool_set:
+            new_slug = _short(cid)
+            used.discard(slug)
+            used.add(new_slug)
+            conn.execute("UPDATE competitions SET slug = ? WHERE id = ?", (new_slug, cid))
+            logger.info("Released slug %s -> %s for ended competition %s", slug, new_slug, cid)
 
 
 def row_to_dict(row: sqlite3.Row) -> dict:

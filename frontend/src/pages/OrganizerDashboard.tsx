@@ -99,6 +99,10 @@ export default function OrganizerDashboard() {
     }
     
     try {
+      const earlyBirdHour = parseInt(formData.get('earlyBirdHour') as string);
+      const lateBirdHour = parseInt(formData.get('lateBirdHour') as string);
+      const birdWindowMinutes = parseInt(formData.get('birdWindowMinutes') as string) || 60;
+
       const competition: Competition = {
         id: editingCompetition?.id || crypto.randomUUID(),
         name: formData.get('name') as string,
@@ -114,6 +118,9 @@ export default function OrganizerDashboard() {
         status: editingCompetition?.status || 'upcoming',
         autoStart: false,
         autoFinish: false,
+        earlyBirdHour: Number.isFinite(earlyBirdHour) ? earlyBirdHour : 5,
+        lateBirdHour: Number.isFinite(lateBirdHour) ? lateBirdHour : 0,
+        birdWindowMinutes,
         actualStartTime: editingCompetition?.actualStartTime || null,
         actualEndTime: editingCompetition?.actualEndTime || null,
         createdAt: editingCompetition?.createdAt || new Date().toISOString(),
@@ -500,6 +507,21 @@ export default function OrganizerDashboard() {
                     <Input id="doubleCountTimeout" name="doubleCountTimeout" type="number" min="5" max="60" defaultValue={editingCompetition?.doubleCountTimeout || 15} required />
                   </div>
                 </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="earlyBirdHour">{od.earlyBirdHour}</Label>
+                    <Input id="earlyBirdHour" name="earlyBirdHour" type="number" min="0" max="23" defaultValue={editingCompetition?.earlyBirdHour ?? 5} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lateBirdHour">{od.lateBirdHour}</Label>
+                    <Input id="lateBirdHour" name="lateBirdHour" type="number" min="0" max="23" defaultValue={editingCompetition?.lateBirdHour ?? 0} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="birdWindowMinutes">{od.birdWindowMinutes}</Label>
+                    <Input id="birdWindowMinutes" name="birdWindowMinutes" type="number" min="15" max="240" defaultValue={editingCompetition?.birdWindowMinutes ?? 60} required />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">{od.birdConfigHint}</p>
                 <DialogFooter>
                   <Button type="submit">{editingCompetition ? od.update : od.create}</Button>
                 </DialogFooter>

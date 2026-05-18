@@ -12,13 +12,56 @@ from flask import Blueprint, request
 from database import get_db
 from utils import (
     new_uuid, ok, created, success, error, not_found,
-    serialize_competition,
+    serialize_competition, generate_competition_slug, short_uuid_slug,
 )
+
+ENDED_STATUSES = ("completed", "stopped")
+
+
+def _allocate_short_slug(db, comp_id: str) -> str:
+    """Pick a short-UUID slug guaranteed unique against current rows."""
+    used = {
+        r[0] for r in db.execute(
+            "SELECT slug FROM competitions WHERE slug IS NOT NULL AND slug != '' AND id != ?",
+            (comp_id,),
+        ).fetchall()
+    }
+    candidate = short_uuid_slug(comp_id)
+    for _ in range(16):
+        if candidate not in used:
+            return candidate
+        candidate = short_uuid_slug(None)
+    # Defensive fallback
+    return f"comp-{candidate}"
 
 competitions_bp = Blueprint("competitions", __name__)
 logger = logging.getLogger(__name__)
 
 VALID_STATUSES = ("upcoming", "active", "paused", "completed", "stopped")
+
+
+def _validate_bird_config(data, current=None):
+    """Pull and validate earlyBirdHour / lateBirdHour / birdWindowMinutes.
+    Returns (early, late, window_min) or raises ValueError."""
+    def _hour(v, default):
+        v = int(v) if v is not None and v != "" else default
+        if not (0 <= v <= 23):
+            raise ValueError("bird hour must be between 0 and 23")
+        return v
+
+    def _window(v, default):
+        v = int(v) if v is not None and v != "" else default
+        if not (15 <= v <= 240):
+            raise ValueError("birdWindowMinutes must be between 15 and 240")
+        return v
+
+    early = _hour(data.get("earlyBirdHour"),
+                  current.get("early_bird_hour", 5) if current else 5)
+    late = _hour(data.get("lateBirdHour"),
+                 current.get("late_bird_hour", 0) if current else 0)
+    window = _window(data.get("birdWindowMinutes"),
+                     current.get("bird_window_minutes", 60) if current else 60)
+    return early, late, window
 
 
 @competitions_bp.route("/competitions", methods=["GET"])
@@ -40,7 +83,9 @@ def list_competitions():
 @competitions_bp.route("/competitions/<cid>", methods=["GET"])
 def get_competition(cid):
     with get_db() as db:
-        row = db.execute("SELECT * FROM competitions WHERE id = ?", (cid,)).fetchone()
+        row = db.execute(
+            "SELECT * FROM competitions WHERE id = ? OR slug = ?", (cid, cid),
+        ).fetchone()
     if not row:
         return not_found("Competition")
     return ok(serialize_competition(dict(row)))
@@ -64,16 +109,24 @@ def create_competition():
     if not org:
         return error("Organizer not found or not an organizer", 404)
 
+    try:
+        early_h, late_h, window_m = _validate_bird_config(data)
+    except ValueError as exc:
+        return error(str(exc))
+
     cid = new_uuid()
     with get_db() as db:
+        slug = generate_competition_slug(db, comp_id=cid)
         db.execute(
             """INSERT INTO competitions
-               (id, name, description, date, start_time, end_time, location,
+               (id, slug, name, description, date, start_time, end_time, location,
                 number_of_lanes, lane_length, double_count_timeout,
-                organizer_id, status)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                organizer_id, status,
+                early_bird_hour, late_bird_hour, bird_window_minutes)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 cid,
+                slug,
                 data["name"],
                 data.get("description", ""),
                 data["date"],
@@ -85,6 +138,9 @@ def create_competition():
                 int(data.get("doubleCountTimeout", 15)),
                 data["organizerId"],
                 "upcoming",
+                early_h,
+                late_h,
+                window_m,
             ),
         )
         db.commit()
@@ -111,10 +167,31 @@ def update_competition(cid):
     if new_status not in VALID_STATUSES:
         return error(f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}")
 
+    try:
+        early_h, late_h, window_m = _validate_bird_config(data, current=ex)
+    except ValueError as exc:
+        return error(str(exc))
+
+    # Release the famous-surname slug when the competition ends so the name
+    # is available for the next competition. The ended competition keeps a
+    # stable, accessible link via a short UUID slug.
+    prev_status = ex["status"]
+    current_slug = ex.get("slug") or ""
+    transitioning_to_ended = (
+        new_status in ENDED_STATUSES and prev_status not in ENDED_STATUSES
+    )
+    if transitioning_to_ended:
+        with get_db() as db:
+            new_slug = _allocate_short_slug(db, cid)
+        if current_slug != new_slug:
+            logger.info("Releasing slug %s -> %s on status=%s", current_slug, new_slug, new_status)
+            current_slug = new_slug
+
     with get_db() as db:
         db.execute(
             """UPDATE competitions SET
                name                = ?,
+               slug                = ?,
                description         = ?,
                date                = ?,
                start_time          = ?,
@@ -126,12 +203,16 @@ def update_competition(cid):
                status              = ?,
                auto_start          = ?,
                auto_finish         = ?,
+               early_bird_hour     = ?,
+               late_bird_hour      = ?,
+               bird_window_minutes = ?,
                actual_start_time   = ?,
                actual_end_time     = ?,
                results_pdf         = ?
                WHERE id = ?""",
             (
                 data.get("name",               ex["name"]),
+                current_slug,
                 data.get("description",        ex.get("description", "")),
                 data.get("date",               ex["date"]),
                 data.get("startTime",          ex["start_time"]),
@@ -143,6 +224,9 @@ def update_competition(cid):
                 new_status,
                 int(data.get("autoStart",      ex.get("auto_start", 0))),
                 int(data.get("autoFinish",     ex.get("auto_finish", 0))),
+                early_h,
+                late_h,
+                window_m,
                 data.get("actualStartTime",    ex.get("actual_start_time")),
                 data.get("actualEndTime",      ex.get("actual_end_time")),
                 data.get("resultsPdf",         ex.get("results_pdf")),

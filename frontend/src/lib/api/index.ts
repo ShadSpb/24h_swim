@@ -143,18 +143,65 @@ export async function canCountLap(swimmerId: string, minIntervalSeconds: number 
   return (now - lastTime) >= minIntervalSeconds * 1000;
 }
 
+// Competition local timezone for early/late bird bucketing. Must match
+// stats.py's COMPETITION_TIMEZONE so that backend and client compute the
+// same buckets. Using a fixed timezone (rather than the browser's local
+// time) is what prevents a referee from cheating by changing their device
+// clock — Intl.DateTimeFormat doesn't read the system clock, only the
+// timestamp string returned by the server.
+const COMP_TZ = 'Europe/Berlin';
+
+const _birdHourFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: COMP_TZ, hour: '2-digit', minute: '2-digit', hour12: false,
+});
+
+function _localMinuteOfDay(isoTimestamp: string): number | null {
+  const d = new Date(isoTimestamp);
+  if (Number.isNaN(d.getTime())) return null;
+  const parts = _birdHourFormatter.formatToParts(d);
+  let h = 0, m = 0;
+  for (const p of parts) {
+    if (p.type === 'hour') h = parseInt(p.value, 10);
+    else if (p.type === 'minute') m = parseInt(p.value, 10);
+  }
+  // Intl renders 24:00 instead of 00:00 in some locales/engines; normalize.
+  if (h === 24) h = 0;
+  return h * 60 + m;
+}
+
+function _inBirdWindow(isoTimestamp: string, startHour: number, windowMinutes: number): boolean {
+  const m = _localMinuteOfDay(isoTimestamp);
+  if (m === null || windowMinutes <= 0) return false;
+  const start = ((startHour % 24) + 24) % 24 * 60;
+  const end = (start + windowMinutes) % (24 * 60);
+  return start <= end ? (m >= start && m < end) : (m >= start || m < end);
+}
+
+async function _birdConfig(competitionId: string): Promise<{ early: number; late: number; window: number }> {
+  const comp = await dataApi.getCompetitionById(competitionId);
+  return {
+    early: comp?.earlyBirdHour ?? 5,
+    late: comp?.lateBirdHour ?? 0,
+    window: comp?.birdWindowMinutes ?? 60,
+  };
+}
+
 export async function getTeamStats(competitionId: string) {
-  const [teams, lapCounts] = await Promise.all([
+  const [teams, lapCounts, bird] = await Promise.all([
     dataApi.getTeamsByCompetition(competitionId),
     dataApi.getLapCountsByCompetition(competitionId),
+    _birdConfig(competitionId),
   ]);
 
   return teams.map(team => {
     const teamLaps = lapCounts.filter(lc => lc.teamId === team.id);
     const totalLaps = teamLaps.length;
 
+    const lateBirdLaps = teamLaps.filter(lc => _inBirdWindow(lc.timestamp, bird.late, bird.window)).length;
+    const earlyBirdLaps = teamLaps.filter(lc => _inBirdWindow(lc.timestamp, bird.early, bird.window)).length;
+
     if (teamLaps.length < 2) {
-      return { team, totalLaps, lapsPerHour: 0, fastestLap: null, lateBirdLaps: 0, earlyBirdLaps: 0 };
+      return { team, totalLaps, lapsPerHour: 0, fastestLap: null, lateBirdLaps, earlyBirdLaps };
     }
 
     const sortedLaps = [...teamLaps].sort((a, b) =>
@@ -174,25 +221,16 @@ export async function getTeamStats(competitionId: string) {
     const durationHours = (lastLap - firstLap) / (1000 * 60 * 60);
     const lapsPerHour = durationHours > 0 ? totalLaps / durationHours : 0;
 
-    const lateBirdLaps = teamLaps.filter(lc => {
-      const hour = new Date(lc.timestamp).getHours();
-      return hour === 0;
-    }).length;
-
-    const earlyBirdLaps = teamLaps.filter(lc => {
-      const hour = new Date(lc.timestamp).getHours();
-      return hour === 5;
-    }).length;
-
     return { team, totalLaps, lapsPerHour, fastestLap, lateBirdLaps, earlyBirdLaps };
   }).sort((a, b) => b.totalLaps - a.totalLaps);
 }
 
 export async function getSwimmerStats(competitionId: string) {
-  const [swimmers, teams, lapCounts] = await Promise.all([
+  const [swimmers, teams, lapCounts, bird] = await Promise.all([
     dataApi.getSwimmersByCompetition(competitionId),
     dataApi.getTeamsByCompetition(competitionId),
     dataApi.getLapCountsByCompetition(competitionId),
+    _birdConfig(competitionId),
   ]);
 
   return swimmers.map(swimmer => {
@@ -200,8 +238,11 @@ export async function getSwimmerStats(competitionId: string) {
     const swimmerLaps = lapCounts.filter(lc => lc.swimmerId === swimmer.id);
     const totalLaps = swimmerLaps.length;
 
+    const lateBirdLaps = swimmerLaps.filter(lc => _inBirdWindow(lc.timestamp, bird.late, bird.window)).length;
+    const earlyBirdLaps = swimmerLaps.filter(lc => _inBirdWindow(lc.timestamp, bird.early, bird.window)).length;
+
     if (swimmerLaps.length < 2) {
-      return { swimmer, team, totalLaps, lapsPerHour: 0, fastestLap: null, lateBirdLaps: 0, earlyBirdLaps: 0 };
+      return { swimmer, team, totalLaps, lapsPerHour: 0, fastestLap: null, lateBirdLaps, earlyBirdLaps };
     }
 
     const sortedLaps = [...swimmerLaps].sort((a, b) =>
@@ -220,16 +261,6 @@ export async function getSwimmerStats(competitionId: string) {
     const lastLap = new Date(sortedLaps[sortedLaps.length - 1].timestamp).getTime();
     const durationHours = (lastLap - firstLap) / (1000 * 60 * 60);
     const lapsPerHour = durationHours > 0 ? totalLaps / durationHours : 0;
-
-    const lateBirdLaps = swimmerLaps.filter(lc => {
-      const hour = new Date(lc.timestamp).getHours();
-      return hour === 0;
-    }).length;
-
-    const earlyBirdLaps = swimmerLaps.filter(lc => {
-      const hour = new Date(lc.timestamp).getHours();
-      return hour === 5;
-    }).length;
 
     return { swimmer, team, totalLaps, lapsPerHour, fastestLap, lateBirdLaps, earlyBirdLaps };
   }).sort((a, b) => b.totalLaps - a.totalLaps);
