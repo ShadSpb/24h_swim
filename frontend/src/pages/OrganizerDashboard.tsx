@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -19,8 +20,10 @@ import { downloadPDF } from '@/lib/utils/pdfGenerator';
 
 export default function OrganizerDashboard() {
   const { isAuthenticated, user } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const od = t.organizerDashboard;
   
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [selectedCompetition, setSelectedCompetition] = useState<Competition | null>(null);
@@ -50,8 +53,8 @@ export default function OrganizerDashboard() {
         const userCompetitions = await dataApi.getCompetitionsByOrganizer(user.id);
         setCompetitions(userCompetitions);
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to load competitions';
-        toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+        const errorMessage = error instanceof Error ? error.message : od.errorLoadCompetitions;
+        toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
         setCompetitions([]);
       }
     }
@@ -69,8 +72,8 @@ export default function OrganizerDashboard() {
       setSwimmers(competitionSwimmers);
       setReferees(competitionReferees);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load competition data';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorLoadCompetitionData;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -86,10 +89,10 @@ export default function OrganizerDashboard() {
       const competitionDateTime = new Date(`${date}T${startTime}`);
       const now = new Date();
       if (competitionDateTime < now) {
-        toast({ 
-          title: 'Invalid date/time', 
-          description: 'Competition cannot be scheduled in the past',
-          variant: 'destructive' 
+        toast({
+          title: od.invalidDateTime,
+          description: od.invalidDateTimeDesc,
+          variant: 'destructive'
         });
         return;
       }
@@ -120,10 +123,10 @@ export default function OrganizerDashboard() {
       await loadCompetitions();
       setShowCompetitionDialog(false);
       setEditingCompetition(null);
-      toast({ title: editingCompetition ? 'Competition updated' : 'Competition created' });
+      toast({ title: editingCompetition ? od.competitionUpdated : od.competitionCreated });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save competition';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorSaveCompetition;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -139,7 +142,7 @@ export default function OrganizerDashboard() {
       // Check for duplicate color on same lane
       const existingTeams = await dataApi.getTeamsByLane(selectedCompetition.id, lane);
       if (existingTeams.some(t => t.color === color && t.id !== editingTeam?.id)) {
-        toast({ title: 'Color conflict', description: 'Two teams on the same lane cannot have the same color', variant: 'destructive' });
+        toast({ title: od.colorConflict, description: od.colorConflictDesc, variant: 'destructive' });
         return;
       }
 
@@ -156,10 +159,10 @@ export default function OrganizerDashboard() {
       await loadCompetitionData(selectedCompetition);
       setShowTeamDialog(false);
       setEditingTeam(null);
-      toast({ title: editingTeam ? 'Team updated' : 'Team created' });
+      toast({ title: editingTeam ? od.teamUpdated : od.teamCreated });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save team';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorSaveTeam;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -202,10 +205,10 @@ export default function OrganizerDashboard() {
       await dataApi.saveSwimmer(swimmer);
       await loadCompetitionData(selectedCompetition);
       setShowSwimmerDialog(false);
-      toast({ title: 'Swimmer added' });
+      toast({ title: od.swimmerAdded });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save swimmer';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorSaveSwimmer;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -251,8 +254,8 @@ export default function OrganizerDashboard() {
         await loadCompetitionData(selectedCompetition);
 
         toast({
-          title: 'Referee added',
-          description: `Login ID: ${userId}`,
+          title: od.refereeAdded,
+          description: `${od.loginId}: ${userId}`,
         });
         return;
       }
@@ -293,13 +296,13 @@ export default function OrganizerDashboard() {
       // Show credentials immediately (plain text for user to see)
       setNewRefereeCredentials({ userId: refUserId, password });
       
-      toast({ 
-        title: 'Referee added',
-        description: `Login ID: ${refUserId}`,
+      toast({
+        title: od.refereeAdded,
+        description: `${od.loginId}: ${refUserId}`,
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create referee';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorCreateReferee;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -335,7 +338,7 @@ export default function OrganizerDashboard() {
         if (selectedCompetition) await loadCompetitionData(selectedCompetition);
 
         setNewRefereeCredentials({ userId: referee.userId, password: newPassword, name: referee.name });
-        toast({ title: 'Password reset successfully' });
+        toast({ title: od.passwordResetSuccess });
         return;
       }
 
@@ -368,16 +371,16 @@ export default function OrganizerDashboard() {
       // Show new credentials (plain text for user to see)
       setNewRefereeCredentials({ userId: referee.userId, password: newPassword, name: referee.name });
       
-      toast({ title: 'Password reset successfully' });
+      toast({ title: od.passwordResetSuccess });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to reset password';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorResetPassword;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: 'Copied to clipboard' });
+    toast({ title: od.copiedToClipboard });
   };
 
   const deleteCompetition = async (id: string) => {
@@ -387,10 +390,10 @@ export default function OrganizerDashboard() {
       if (selectedCompetition?.id === id) {
         setSelectedCompetition(null);
       }
-      toast({ title: 'Competition deleted', description: 'All related data has been removed' });
+      toast({ title: od.competitionDeleted, description: od.competitionDeletedDesc });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete competition';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorDeleteCompetition;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -404,10 +407,10 @@ export default function OrganizerDashboard() {
     try {
       await dataApi.deleteTeam(id);
       if (selectedCompetition) await loadCompetitionData(selectedCompetition);
-      toast({ title: 'Team deleted' });
+      toast({ title: od.teamDeleted });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete team';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorDeleteTeam;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -415,10 +418,10 @@ export default function OrganizerDashboard() {
     try {
       await dataApi.deleteSwimmer(id);
       if (selectedCompetition) await loadCompetitionData(selectedCompetition);
-      toast({ title: 'Swimmer removed' });
+      toast({ title: od.swimmerRemoved });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete swimmer';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorDeleteSwimmer;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -426,10 +429,10 @@ export default function OrganizerDashboard() {
     try {
       await dataApi.deleteReferee(id);
       if (selectedCompetition) await loadCompetitionData(selectedCompetition);
-      toast({ title: 'Referee removed' });
+      toast({ title: od.refereeRemoved });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete referee';
-      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : od.errorDeleteReferee;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -449,56 +452,56 @@ export default function OrganizerDashboard() {
       <div className="container py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Organizer Dashboard</h1>
-            <p className="text-muted-foreground">Manage your swimming competitions</p>
+            <h1 className="text-3xl font-bold">{od.title}</h1>
+            <p className="text-muted-foreground">{od.subtitle}</p>
           </div>
           <Dialog open={showCompetitionDialog} onOpenChange={setShowCompetitionDialog}>
             <DialogTrigger asChild>
               <Button onClick={() => setEditingCompetition(null)}>
                 <Plus className="h-4 w-4 mr-2" />
-                New Competition
+                {od.newCompetition}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-lg">
               <DialogHeader>
-                <DialogTitle>{editingCompetition ? 'Edit Competition' : 'Create Competition'}</DialogTitle>
-                <DialogDescription>Fill in the details for your 24-hour swimming event.</DialogDescription>
+                <DialogTitle>{editingCompetition ? od.editCompetition : od.createCompetition}</DialogTitle>
+                <DialogDescription>{od.competitionDialogDesc}</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateCompetition} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Competition Name</Label>
+                  <Label htmlFor="name">{od.competitionName}</Label>
                   <Input id="name" name="name" defaultValue={editingCompetition?.name} required />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="date">Date</Label>
+                    <Label htmlFor="date">{od.date}</Label>
                     <Input id="date" name="date" type="date" defaultValue={editingCompetition?.date} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="location">Location</Label>
+                    <Label htmlFor="location">{od.location}</Label>
                     <Input id="location" name="location" defaultValue={editingCompetition?.location} required />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="startTime">Start Time</Label>
+                  <Label htmlFor="startTime">{od.startTime}</Label>
                   <Input id="startTime" name="startTime" type="time" defaultValue={editingCompetition?.startTime || '08:00'} required />
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="numberOfLanes">Number of Lanes</Label>
+                    <Label htmlFor="numberOfLanes">{od.numberOfLanes}</Label>
                     <Input id="numberOfLanes" name="numberOfLanes" type="number" min="1" max="10" defaultValue={editingCompetition?.numberOfLanes || 6} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="laneLength">Lane Length (m)</Label>
+                    <Label htmlFor="laneLength">{od.laneLength}</Label>
                     <Input id="laneLength" name="laneLength" type="number" min="25" defaultValue={editingCompetition?.laneLength || 25} required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="doubleCountTimeout">Double-Count Timeout (s)</Label>
+                    <Label htmlFor="doubleCountTimeout">{od.doubleCountTimeout}</Label>
                     <Input id="doubleCountTimeout" name="doubleCountTimeout" type="number" min="5" max="60" defaultValue={editingCompetition?.doubleCountTimeout || 15} required />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button type="submit">{editingCompetition ? 'Update' : 'Create'}</Button>
+                  <Button type="submit">{editingCompetition ? od.update : od.create}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -508,13 +511,13 @@ export default function OrganizerDashboard() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Competitions List */}
           <div className="lg:col-span-1 space-y-4">
-            <h2 className="text-xl font-semibold">Your Competitions</h2>
+            <h2 className="text-xl font-semibold">{od.yourCompetitions}</h2>
             {competitions.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
                   <Waves className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>No competitions yet</p>
-                  <p className="text-sm">Create your first competition to get started</p>
+                  <p>{od.noCompetitions}</p>
+                  <p className="text-sm">{od.noCompetitionsDesc}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -534,7 +537,7 @@ export default function OrganizerDashboard() {
                         : comp.status === 'stopped' ? 'destructive'
                         : 'outline'
                       }>
-                        {comp.status}
+                        {t.competition.status[comp.status]}
                       </Badge>
                     </div>
                     <CardDescription className="flex flex-col gap-1">
@@ -548,7 +551,7 @@ export default function OrganizerDashboard() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Waves className="h-3 w-3" />
-                        {comp.numberOfLanes} lanes × {comp.laneLength}m
+                        {comp.numberOfLanes} {od.lanes} × {comp.laneLength}m
                       </span>
                     </CardDescription>
                   </CardHeader>
@@ -563,7 +566,7 @@ export default function OrganizerDashboard() {
                         <Eye className="h-3 w-3" />
                       </Button>
                       {comp.status === 'completed' && comp.resultsPdf && (
-                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleDownloadPDF(comp); }} title="Download Results PDF">
+                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleDownloadPDF(comp); }} title={od.downloadResults}>
                           <FileText className="h-3 w-3" />
                         </Button>
                       )}
@@ -588,34 +591,34 @@ export default function OrganizerDashboard() {
                       <Waves className="h-5 w-5" />
                       {selectedCompetition.name}
                     </CardTitle>
-                    <CardDescription>Competition Overview</CardDescription>
+                    <CardDescription>{od.competitionOverview}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-4">
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm text-muted-foreground">Date</p>
+                          <p className="text-sm text-muted-foreground">{od.date}</p>
                           <p className="font-medium">{selectedCompetition.date}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm text-muted-foreground">Location</p>
+                          <p className="text-sm text-muted-foreground">{od.location}</p>
                           <p className="font-medium">{selectedCompetition.location}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
                         <div>
-                          <p className="text-sm text-muted-foreground">Start Time</p>
+                          <p className="text-sm text-muted-foreground">{od.startTime}</p>
                           <p className="font-medium">{selectedCompetition.startTime}</p>
                         </div>
                       </div>
                     </div>
                     <div className="mt-4 pt-4 border-t text-sm text-muted-foreground">
-                      {selectedCompetition.numberOfLanes} lanes × {selectedCompetition.laneLength}m | Double-count timeout: {selectedCompetition.doubleCountTimeout}s
+                      {selectedCompetition.numberOfLanes} {od.lanes} × {selectedCompetition.laneLength}m | {od.doubleCountTimeoutShort}: {selectedCompetition.doubleCountTimeout}s
                     </div>
                   </CardContent>
                 </Card>
@@ -635,40 +638,40 @@ export default function OrganizerDashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg">Teams</CardTitle>
-                      <CardDescription>{teams.length} teams registered</CardDescription>
+                      <CardTitle className="text-lg">{od.teams}</CardTitle>
+                      <CardDescription>{teams.length} {od.teamsRegistered}</CardDescription>
                     </div>
                     <Dialog open={showTeamDialog} onOpenChange={setShowTeamDialog}>
                       <DialogTrigger asChild>
                         <Button size="sm" onClick={() => setEditingTeam(null)} disabled={selectedCompetition.status === 'completed'}>
                           <Plus className="h-4 w-4 mr-1" />
-                          Add Team
+                          {od.addTeam}
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>{editingTeam ? 'Edit Team' : 'Add Team'}</DialogTitle>
+                          <DialogTitle>{editingTeam ? od.editTeam : od.addTeam}</DialogTitle>
                         </DialogHeader>
                         <form onSubmit={handleCreateTeam} className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="teamName">Team Name</Label>
+                            <Label htmlFor="teamName">{od.teamName}</Label>
                             <Input id="teamName" name="name" defaultValue={editingTeam?.name} required />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="lane">Assigned Lane</Label>
+                            <Label htmlFor="lane">{od.assignedLane}</Label>
                             <Select name="lane" defaultValue={editingTeam?.assignedLane?.toString() || '1'}>
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 {Array.from({ length: selectedCompetition.numberOfLanes }, (_, i) => (
-                                  <SelectItem key={i + 1} value={(i + 1).toString()}>Lane {i + 1}</SelectItem>
+                                  <SelectItem key={i + 1} value={(i + 1).toString()}>{od.lane} {i + 1}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label>Team Color</Label>
+                            <Label>{od.teamColor}</Label>
                             <div className="flex flex-wrap gap-2">
                               {TEAM_COLORS.map(color => (
                                 <label key={color.value} className="cursor-pointer">
@@ -689,7 +692,7 @@ export default function OrganizerDashboard() {
                             </div>
                           </div>
                           <DialogFooter>
-                            <Button type="submit">{editingTeam ? 'Update' : 'Add'}</Button>
+                            <Button type="submit">{editingTeam ? od.update : od.add}</Button>
                           </DialogFooter>
                         </form>
                       </DialogContent>
@@ -697,7 +700,7 @@ export default function OrganizerDashboard() {
                   </CardHeader>
                   <CardContent>
                     {teams.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">No teams added yet</p>
+                      <p className="text-muted-foreground text-sm">{od.noTeamsYet}</p>
                     ) : (
                       <div className="space-y-2">
                         {teams.map(team => (
@@ -706,7 +709,7 @@ export default function OrganizerDashboard() {
                               <div className="w-6 h-6 rounded-full" style={{ backgroundColor: team.color }} />
                               <div>
                                 <p className="font-medium">{team.name}</p>
-                                <p className="text-sm text-muted-foreground">Lane {team.assignedLane}</p>
+                                <p className="text-sm text-muted-foreground">{od.lane} {team.assignedLane}</p>
                               </div>
                             </div>
                             {selectedCompetition.status !== 'completed' && (
@@ -730,30 +733,30 @@ export default function OrganizerDashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg">Swimmers</CardTitle>
-                      <CardDescription>{swimmers.length} swimmers registered</CardDescription>
+                      <CardTitle className="text-lg">{od.swimmers}</CardTitle>
+                      <CardDescription>{swimmers.length} {od.swimmersRegistered}</CardDescription>
                     </div>
                     <Dialog open={showSwimmerDialog} onOpenChange={setShowSwimmerDialog}>
                       <DialogTrigger asChild>
                         <Button size="sm" disabled={teams.length === 0 || selectedCompetition.status === 'completed'}>
                           <UserPlus className="h-4 w-4 mr-1" />
-                          Add Swimmer
+                          {od.addSwimmer}
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Add Swimmer</DialogTitle>
+                          <DialogTitle>{od.addSwimmer}</DialogTitle>
                         </DialogHeader>
                         <form onSubmit={handleCreateSwimmer} className="space-y-4">
                           <div className="space-y-2">
-                            <Label htmlFor="swimmerName">Swimmer Name</Label>
+                            <Label htmlFor="swimmerName">{od.swimmerName}</Label>
                             <Input id="swimmerName" name="name" required />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="teamId">Team</Label>
+                            <Label htmlFor="teamId">{od.team}</Label>
                             <Select name="teamId" required>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select team" />
+                                <SelectValue placeholder={od.selectTeam} />
                               </SelectTrigger>
                               <SelectContent>
                                 {teams.map(team => (
@@ -763,19 +766,19 @@ export default function OrganizerDashboard() {
                             </Select>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="dateOfBirth">Date of birth (DD.MM.YYYY)</Label>
+                            <Label htmlFor="dateOfBirth">{od.dateOfBirthLabel}</Label>
                             <Input id="dateOfBirth" name="dateOfBirth" type="date" />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="parentName">Parent Name (if under 12)</Label>
-                            <Input id="parentName" name="parentName" placeholder="Full name" />
+                            <Label htmlFor="parentName">{od.parentNameLabel}</Label>
+                            <Input id="parentName" name="parentName" placeholder={od.parentNamePlaceholder} />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="parentContact">Parent Contact (if under 12)</Label>
-                            <Input id="parentContact" name="parentContact" placeholder="Phone or email" />
+                            <Label htmlFor="parentContact">{od.parentContactLabel}</Label>
+                            <Input id="parentContact" name="parentContact" placeholder={od.parentContactPlaceholder} />
                           </div>
                           <DialogFooter>
-                            <Button type="submit">Add Swimmer</Button>
+                            <Button type="submit">{od.addSwimmer}</Button>
                           </DialogFooter>
                         </form>
                       </DialogContent>
@@ -783,7 +786,7 @@ export default function OrganizerDashboard() {
                   </CardHeader>
                   <CardContent>
                     {swimmers.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">No swimmers added yet</p>
+                      <p className="text-muted-foreground text-sm">{od.noSwimmersYet}</p>
                     ) : (
                       <div className="space-y-2">
                         {swimmers.map(swimmer => {
@@ -799,9 +802,9 @@ export default function OrganizerDashboard() {
                                       const [y, m, d] = swimmer.dateOfBirth.split('-');
                                       return <span className="ml-2 text-xs text-muted-foreground">{`${d}.${m}.${y}`}</span>;
                                     })()}
-                                    {swimmer.isUnder12 && <Badge variant="secondary" className="ml-2">Under 12</Badge>}
+                                    {swimmer.isUnder12 && <Badge variant="secondary" className="ml-2">{od.underTwelveBadge}</Badge>}
                                   </p>
-                                  <p className="text-sm text-muted-foreground">{team?.name || 'Unknown team'}</p>
+                                  <p className="text-sm text-muted-foreground">{team?.name || od.unknownTeam}</p>
                                 </div>
                               </div>
                               {selectedCompetition.status !== 'completed' && (
@@ -821,12 +824,12 @@ export default function OrganizerDashboard() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg">Referees</CardTitle>
-                      <CardDescription>{referees.length} referees assigned</CardDescription>
+                      <CardTitle className="text-lg">{od.referees}</CardTitle>
+                      <CardDescription>{referees.length} {od.refereesAssigned}</CardDescription>
                     </div>
                     <Button size="sm" onClick={() => { void handleCreateReferee(); }} disabled={selectedCompetition.status === 'completed'}>
                       <UserPlus className="h-4 w-4 mr-1" />
-                      Add Referee
+                      {od.addReferee}
                     </Button>
 
                     {/* Credentials Dialog */}
@@ -835,16 +838,16 @@ export default function OrganizerDashboard() {
                         <DialogHeader>
                           <DialogTitle className="flex items-center gap-2">
                             <Key className="h-5 w-5" />
-                            Referee Credentials
+                            {od.refereeCredentials}
                           </DialogTitle>
                           <DialogDescription>
-                            Share these credentials with the referee. They will need them to login.
+                            {od.refereeCredentialsDesc}
                           </DialogDescription>
                         </DialogHeader>
                         {newRefereeCredentials && (
                           <div className="space-y-4 py-4">
                             <div className="space-y-2">
-                              <Label>Login ID</Label>
+                              <Label>{od.loginId}</Label>
                               <div className="flex gap-2">
                                 <Input readOnly value={newRefereeCredentials.userId} className="font-mono" />
                                 <Button size="icon" variant="outline" onClick={() => copyToClipboard(newRefereeCredentials.userId)}>
@@ -853,7 +856,7 @@ export default function OrganizerDashboard() {
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <Label>Password</Label>
+                              <Label>{od.password}</Label>
                               <div className="flex gap-2">
                                 <Input readOnly value={newRefereeCredentials.password} className="font-mono" />
                                 <Button size="icon" variant="outline" onClick={() => copyToClipboard(newRefereeCredentials.password)}>
@@ -862,19 +865,19 @@ export default function OrganizerDashboard() {
                               </div>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              ⚠️ Make sure to save these credentials - the password cannot be recovered.
+                              {od.saveCredsWarning}
                             </p>
                           </div>
                         )}
                         <DialogFooter>
-                          <Button onClick={() => setNewRefereeCredentials(null)}>Done</Button>
+                          <Button onClick={() => setNewRefereeCredentials(null)}>{od.done}</Button>
                         </DialogFooter>
                       </DialogContent>
                     </Dialog>
                   </CardHeader>
                   <CardContent>
                     {referees.length === 0 ? (
-                      <p className="text-muted-foreground text-sm">No referees assigned yet</p>
+                      <p className="text-muted-foreground text-sm">{od.noRefereesYet}</p>
                     ) : (
                       <div className="space-y-2">
                         {referees.map(referee => (
@@ -884,10 +887,10 @@ export default function OrganizerDashboard() {
                             </div>
                             {selectedCompetition.status !== 'completed' && (
                               <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" onClick={() => { void handleResetRefereePassword(referee); }} title="Reset password">
+                                <Button size="sm" variant="ghost" onClick={() => { void handleResetRefereePassword(referee); }} title={od.resetPassword}>
                                   <Key className="h-3 w-3" />
                                 </Button>
-                                <Button size="sm" variant="ghost" onClick={() => { void deleteReferee(referee.id); }} title="Delete referee">
+                                <Button size="sm" variant="ghost" onClick={() => { void deleteReferee(referee.id); }} title={od.deleteReferee}>
                                   <Trash2 className="h-3 w-3" />
                                 </Button>
                               </div>
@@ -903,8 +906,8 @@ export default function OrganizerDashboard() {
               <Card>
                 <CardContent className="py-16 text-center text-muted-foreground">
                   <Waves className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Select a competition to manage</p>
-                  <p className="text-sm">Or create a new one to get started</p>
+                  <p className="text-lg">{od.selectCompetitionToManage}</p>
+                  <p className="text-sm">{od.selectCompetitionDesc}</p>
                 </CardContent>
               </Card>
             )}
