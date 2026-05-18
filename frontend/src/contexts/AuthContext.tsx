@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { User, AuthState, UserRole } from '@/types';
 import { authApi, isRemoteMode } from '@/lib/api';
 
@@ -14,23 +14,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const AUTH_KEY = 'swimtrack_auth';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({
-    isAuthenticated: false,
-    user: null,
-  });
-
-  useEffect(() => {
-    // Check for existing session
-    const savedAuth = localStorage.getItem(AUTH_KEY);
-    if (savedAuth) {
-      try {
-        const parsed = JSON.parse(savedAuth);
-        setAuthState(parsed);
-      } catch {
-        localStorage.removeItem(AUTH_KEY);
+  // Hydrate from localStorage synchronously on first render so that pages
+  // reading `isAuthenticated` in their initial useEffect don't incorrectly
+  // redirect to /login before a useEffect-based hydration can run.
+  const [authState, setAuthState] = useState<AuthState>(() => {
+    try {
+      const savedAuth = localStorage.getItem(AUTH_KEY);
+      if (savedAuth) {
+        return JSON.parse(savedAuth) as AuthState;
       }
+    } catch {
+      localStorage.removeItem(AUTH_KEY);
     }
-  }, []);
+    return { isAuthenticated: false, user: null };
+  });
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
