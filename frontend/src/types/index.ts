@@ -26,6 +26,9 @@ export interface Competition {
   status: 'upcoming' | 'active' | 'paused' | 'completed' | 'stopped';
   autoStart: boolean;
   autoFinish: boolean;
+  earlyBirdHour: number;        // 0..23, competition local time
+  lateBirdHour: number;         // 0..23, competition local time
+  birdWindowMinutes: number;    // window length in minutes (15..240)
   actualStartTime: string | null;
   actualEndTime: string | null;
   createdAt: string;

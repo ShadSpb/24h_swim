@@ -102,6 +102,26 @@ check("POST /competitions → 201",       s(r) == 201, s(r))
 C = j(r)["data"]; CID = C["id"]
 check("status = upcoming",              C["status"] == "upcoming")
 check("doubleCountTimeout = 5",         C["doubleCountTimeout"] == 5)
+check("earlyBirdHour default = 5",      C["earlyBirdHour"] == 5)
+check("lateBirdHour default = 0",       C["lateBirdHour"] == 0)
+check("birdWindowMinutes default = 60", C["birdWindowMinutes"] == 60)
+# custom bird config + validation
+r2 = client.post("/competitions", json={
+    "name":"Custom Bird","date":"2026-07-02","startTime":"10:00",
+    "location":"X","organizerId":ADMIN_ID,"numberOfLanes":1,
+    "earlyBirdHour":7,"lateBirdHour":23,"birdWindowMinutes":90,
+})
+check("custom bird config → 201",       s(r2) == 201)
+check("earlyBirdHour = 7",              j(r2)["data"]["earlyBirdHour"] == 7)
+check("lateBirdHour = 23",              j(r2)["data"]["lateBirdHour"] == 23)
+check("birdWindowMinutes = 90",         j(r2)["data"]["birdWindowMinutes"] == 90)
+client.delete(f"/competitions/{j(r2)['data']['id']}")
+check("invalid bird hour → 400",        s(client.post("/competitions", json={
+    "name":"X","date":"2026-01-01","startTime":"08:00","location":"Y",
+    "organizerId":ADMIN_ID,"numberOfLanes":1,"earlyBirdHour":24})) == 400)
+check("invalid window → 400",           s(client.post("/competitions", json={
+    "name":"X","date":"2026-01-01","startTime":"08:00","location":"Y",
+    "organizerId":ADMIN_ID,"numberOfLanes":1,"birdWindowMinutes":5})) == 400)
 check("GET by id → 200",                s(client.get(f"/competitions/{CID}")) == 200)
 check("GET list → 200",                 s(client.get("/competitions", query_string={"organizerId":ADMIN_ID})) == 200)
 check("returns 1",                      len(j(client.get("/competitions", query_string={"organizerId":ADMIN_ID}))["data"]) == 1)

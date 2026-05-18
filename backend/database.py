@@ -94,6 +94,7 @@ def init_db() -> None:
         conn.executescript(schema)
         _migrate_lap_counts_referee_fk(conn)
         _migrate_swimmers_date_of_birth(conn)
+        _migrate_competitions_bird_windows(conn)
         _migrate_legacy_user_passwords(conn)
     _harden_sidecar_files(_db_path())
     logger.info("Database initialised at %s", _db_path())
@@ -236,6 +237,25 @@ def _migrate_swimmers_date_of_birth(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_swimmers_team ON swimmers(team_id);
         """
     )
+
+
+def _migrate_competitions_bird_windows(conn: sqlite3.Connection) -> None:
+    """
+    Add per-competition early/late-bird configuration columns if missing.
+    Defaults preserve historical behavior (early=05:00, late=00:00, 60-min window).
+    """
+    cols = {c["name"] for c in conn.execute("PRAGMA table_info(competitions)").fetchall()}
+    if not cols:
+        return
+    additions = (
+        ("early_bird_hour",     "INTEGER NOT NULL DEFAULT 5"),
+        ("late_bird_hour",      "INTEGER NOT NULL DEFAULT 0"),
+        ("bird_window_minutes", "INTEGER NOT NULL DEFAULT 60"),
+    )
+    for col, ddl in additions:
+        if col not in cols:
+            logger.info("Applying migration: competitions ADD COLUMN %s", col)
+            conn.execute(f"ALTER TABLE competitions ADD COLUMN {col} {ddl}")
 
 
 def row_to_dict(row: sqlite3.Row) -> dict:

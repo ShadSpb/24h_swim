@@ -8,8 +8,10 @@ Routes match the frontend API contract:
 """
 
 import logging
+import os
 from collections import defaultdict
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from flask import Blueprint, jsonify
 from database import get_db
 from utils import is_under_12_from_dob
@@ -17,9 +19,16 @@ from utils import is_under_12_from_dob
 stats_bp = Blueprint("stats", __name__)
 logger   = logging.getLogger(__name__)
 
-# RULES.md: early bird = 05:00-06:00, late bird = 00:00-01:00
-_LATE_BIRD_H  = 0
-_EARLY_BIRD_H = 5
+# All lap timestamps are stored as server-generated UTC (see lap_counts.py).
+# Early/late-bird windows are wall-clock concepts, so we convert UTC -> the
+# competition's local time before bucketing. The timezone is fixed
+# server-side (env override possible) so a referee's device clock cannot
+# influence which laps count toward early/late-bird totals.
+try:
+    _COMP_TZ = ZoneInfo(os.environ.get("COMPETITION_TIMEZONE", "Europe/Berlin"))
+except ZoneInfoNotFoundError:
+    logger.warning("Configured COMPETITION_TIMEZONE not found, falling back to UTC")
+    _COMP_TZ = timezone.utc
 
 
 def _parse_utc(ts: str):
@@ -31,12 +40,43 @@ def _parse_utc(ts: str):
         return None
 
 
-def _hour(ts: str):
+def _local_minute_of_day(ts: str):
+    """Return minute-of-day (0..1439) in the configured competition timezone."""
     dt = _parse_utc(ts)
-    return dt.hour if dt else None
+    if not dt:
+        return None
+    local = dt.astimezone(_COMP_TZ)
+    return local.hour * 60 + local.minute
+
+
+def _in_window(ts: str, start_hour: int, window_minutes: int) -> bool:
+    """Is the UTC timestamp within [start_hour, start_hour + window) in local time?
+    Handles windows that cross midnight (e.g. start 23 + 90 min spans 23:00-00:30)."""
+    m = _local_minute_of_day(ts)
+    if m is None or window_minutes <= 0:
+        return False
+    start = (start_hour * 60) % 1440
+    end = (start + window_minutes) % 1440
+    if start <= end:
+        return start <= m < end
+    return m >= start or m < end
+
+
+def _bird_config(comp: dict) -> tuple[int, int, int]:
+    return (
+        int(comp.get("early_bird_hour", 5) or 0),
+        int(comp.get("late_bird_hour", 0) or 0),
+        int(comp.get("bird_window_minutes", 60) or 60),
+    )
 
 
 def _team_stats(cid: str, db) -> list[dict]:
+    comp_row = db.execute(
+        "SELECT early_bird_hour, late_bird_hour, bird_window_minutes FROM competitions WHERE id=?",
+        (cid,),
+    ).fetchone()
+    early_h, late_h, window_m = _bird_config(dict(comp_row) if comp_row else {})
+
     teams    = {dict(r)["id"]: dict(r) for r in db.execute(
         "SELECT * FROM teams WHERE competition_id=? ORDER BY assigned_lane, name", (cid,)
     ).fetchall()}
@@ -64,8 +104,8 @@ def _team_stats(cid: str, db) -> list[dict]:
     for tid, team in teams.items():
         laps  = team_laps.get(tid, [])
         total = len(laps)
-        late_bird  = sum(1 for l in laps if _hour(l["timestamp"]) == _LATE_BIRD_H)
-        early_bird = sum(1 for l in laps if _hour(l["timestamp"]) == _EARLY_BIRD_H)
+        late_bird  = sum(1 for l in laps if _in_window(l["timestamp"], late_h, window_m))
+        early_bird = sum(1 for l in laps if _in_window(l["timestamp"], early_h, window_m))
 
         timestamps   = [t for t in (_parse_utc(l["timestamp"]) for l in laps) if t]
         laps_per_hour = fastest_lap_s = None
@@ -94,6 +134,12 @@ def _team_stats(cid: str, db) -> list[dict]:
 
 
 def _swimmer_stats(cid: str, db) -> list[dict]:
+    comp_row = db.execute(
+        "SELECT early_bird_hour, late_bird_hour, bird_window_minutes FROM competitions WHERE id=?",
+        (cid,),
+    ).fetchone()
+    early_h, late_h, window_m = _bird_config(dict(comp_row) if comp_row else {})
+
     rows = db.execute(
         """SELECT s.*, t.name as team_name, t.color as team_color
            FROM swimmers s JOIN teams t ON s.team_id=t.id
@@ -123,8 +169,8 @@ def _swimmer_stats(cid: str, db) -> list[dict]:
         s   = dict(sw); sid = s["id"]
         laps = sw_laps.get(sid, [])
         total      = len(laps)
-        late_bird  = sum(1 for l in laps if _hour(l["timestamp"]) == _LATE_BIRD_H)
-        early_bird = sum(1 for l in laps if _hour(l["timestamp"]) == _EARLY_BIRD_H)
+        late_bird  = sum(1 for l in laps if _in_window(l["timestamp"], late_h, window_m))
+        early_bird = sum(1 for l in laps if _in_window(l["timestamp"], early_h, window_m))
         results.append({
             "swimmer":           {"id": sid, "name": s["name"], "teamId": s["team_id"],
                                   "teamName": s["team_name"], "teamColor": s["team_color"],

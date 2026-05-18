@@ -50,6 +50,18 @@ const REFRESH_INTERVALS = [
   { label: '1 minute', value: 60000 },
 ];
 
+/** Format a bird-bonus window as "HH:MM-HH:MM" (24h, local-to-competition). */
+function formatBirdWindow(startHour: number | undefined, windowMinutes: number | undefined): string {
+  const sh = Number.isFinite(startHour as number) ? (startHour as number) : 0;
+  const wm = Number.isFinite(windowMinutes as number) && (windowMinutes as number) > 0
+    ? (windowMinutes as number)
+    : 60;
+  const startMin = ((sh % 24) + 24) % 24 * 60;
+  const endMin = (startMin + wm) % (24 * 60);
+  const fmt = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+  return `${fmt(startMin)}-${fmt(endMin)}`;
+}
+
 
 export default function Monitor() {
   const { competitionId } = useParams();
@@ -578,13 +590,13 @@ export default function Monitor() {
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('lateBird')}>
                             <span className="flex items-center justify-end gap-1">
                               <Moon className="h-4 w-4" />
-                              {t.monitor.lateBird.split(' ')[0]} {t.monitor.lateBird.split(' ')[1]} <SortButton active={teamSortKey === 'lateBird'} direction={teamSortDir} />
+                              {t.monitor.lateBird} ({formatBirdWindow(selectedCompetition?.lateBirdHour, selectedCompetition?.birdWindowMinutes)}) <SortButton active={teamSortKey === 'lateBird'} direction={teamSortDir} />
                             </span>
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('earlyBird')}>
                             <span className="flex items-center justify-end gap-1">
                               <Sun className="h-4 w-4" />
-                              {t.monitor.earlyBird.split(' ')[0]} {t.monitor.earlyBird.split(' ')[1]} <SortButton active={teamSortKey === 'earlyBird'} direction={teamSortDir} />
+                              {t.monitor.earlyBird} ({formatBirdWindow(selectedCompetition?.earlyBirdHour, selectedCompetition?.birdWindowMinutes)}) <SortButton active={teamSortKey === 'earlyBird'} direction={teamSortDir} />
                             </span>
                           </TableHead>
                         </TableRow>
@@ -669,13 +681,13 @@ export default function Monitor() {
                           <TableHead className="text-right cursor-pointer" onClick={() => handleSwimmerSort('lateBird')}>
                             <span className="flex items-center justify-end gap-1">
                               <Moon className="h-4 w-4" />
-                              {t.monitor.lateBird.split(' ')[0]} {t.monitor.lateBird.split(' ')[1]} <SortButton active={swimmerSortKey === 'lateBird'} direction={swimmerSortDir} />
+                              {t.monitor.lateBird} ({formatBirdWindow(selectedCompetition?.lateBirdHour, selectedCompetition?.birdWindowMinutes)}) <SortButton active={swimmerSortKey === 'lateBird'} direction={swimmerSortDir} />
                             </span>
                           </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleSwimmerSort('earlyBird')}>
                             <span className="flex items-center justify-end gap-1">
                               <Sun className="h-4 w-4" />
-                              {t.monitor.earlyBird.split(' ')[0]} {t.monitor.earlyBird.split(' ')[1]} <SortButton active={swimmerSortKey === 'earlyBird'} direction={swimmerSortDir} />
+                              {t.monitor.earlyBird} ({formatBirdWindow(selectedCompetition?.earlyBirdHour, selectedCompetition?.birdWindowMinutes)}) <SortButton active={swimmerSortKey === 'earlyBird'} direction={swimmerSortDir} />
                             </span>
                           </TableHead>
                         </TableRow>

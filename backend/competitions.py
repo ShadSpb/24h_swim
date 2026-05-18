@@ -21,6 +21,30 @@ logger = logging.getLogger(__name__)
 VALID_STATUSES = ("upcoming", "active", "paused", "completed", "stopped")
 
 
+def _validate_bird_config(data, current=None):
+    """Pull and validate earlyBirdHour / lateBirdHour / birdWindowMinutes.
+    Returns (early, late, window_min) or raises ValueError."""
+    def _hour(v, default):
+        v = int(v) if v is not None and v != "" else default
+        if not (0 <= v <= 23):
+            raise ValueError("bird hour must be between 0 and 23")
+        return v
+
+    def _window(v, default):
+        v = int(v) if v is not None and v != "" else default
+        if not (15 <= v <= 240):
+            raise ValueError("birdWindowMinutes must be between 15 and 240")
+        return v
+
+    early = _hour(data.get("earlyBirdHour"),
+                  current.get("early_bird_hour", 5) if current else 5)
+    late = _hour(data.get("lateBirdHour"),
+                 current.get("late_bird_hour", 0) if current else 0)
+    window = _window(data.get("birdWindowMinutes"),
+                     current.get("bird_window_minutes", 60) if current else 60)
+    return early, late, window
+
+
 @competitions_bp.route("/competitions", methods=["GET"])
 def list_competitions():
     organizer_id = request.args.get("organizerId")
@@ -64,14 +88,20 @@ def create_competition():
     if not org:
         return error("Organizer not found or not an organizer", 404)
 
+    try:
+        early_h, late_h, window_m = _validate_bird_config(data)
+    except ValueError as exc:
+        return error(str(exc))
+
     cid = new_uuid()
     with get_db() as db:
         db.execute(
             """INSERT INTO competitions
                (id, name, description, date, start_time, end_time, location,
                 number_of_lanes, lane_length, double_count_timeout,
-                organizer_id, status)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                organizer_id, status,
+                early_bird_hour, late_bird_hour, bird_window_minutes)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 cid,
                 data["name"],
@@ -85,6 +115,9 @@ def create_competition():
                 int(data.get("doubleCountTimeout", 15)),
                 data["organizerId"],
                 "upcoming",
+                early_h,
+                late_h,
+                window_m,
             ),
         )
         db.commit()
@@ -111,6 +144,11 @@ def update_competition(cid):
     if new_status not in VALID_STATUSES:
         return error(f"Invalid status. Must be one of: {', '.join(VALID_STATUSES)}")
 
+    try:
+        early_h, late_h, window_m = _validate_bird_config(data, current=ex)
+    except ValueError as exc:
+        return error(str(exc))
+
     with get_db() as db:
         db.execute(
             """UPDATE competitions SET
@@ -126,6 +164,9 @@ def update_competition(cid):
                status              = ?,
                auto_start          = ?,
                auto_finish         = ?,
+               early_bird_hour     = ?,
+               late_bird_hour      = ?,
+               bird_window_minutes = ?,
                actual_start_time   = ?,
                actual_end_time     = ?,
                results_pdf         = ?
@@ -143,6 +184,9 @@ def update_competition(cid):
                 new_status,
                 int(data.get("autoStart",      ex.get("auto_start", 0))),
                 int(data.get("autoFinish",     ex.get("auto_finish", 0))),
+                early_h,
+                late_h,
+                window_m,
                 data.get("actualStartTime",    ex.get("actual_start_time")),
                 data.get("actualEndTime",      ex.get("actual_end_time")),
                 data.get("resultsPdf",         ex.get("results_pdf")),
