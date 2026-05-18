@@ -611,7 +611,22 @@ export default function RefereeDashboard() {
                     return activeSessions.some(s => s.laneNumber === lane);
                   })
                   .map(lane => {
-                    const laneSessions = activeSessions.filter(s => s.laneNumber === lane);
+                    // Stable per-lane order by team creation time so a swimmer
+                    // swap doesn't reshuffle the cards (backend returns sessions
+                    // ordered by start_time DESC, which would otherwise move the
+                    // just-swapped team to the front).
+                    const teamOrder = (teamId: string) => {
+                      const team = allTeams.find(t => t.id === teamId);
+                      return team?.createdAt ?? teamId;
+                    };
+                    const laneSessions = activeSessions
+                      .filter(s => s.laneNumber === lane)
+                      .slice()
+                      .sort((a, b) => {
+                        const oa = teamOrder(a.teamId);
+                        const ob = teamOrder(b.teamId);
+                        return oa < ob ? -1 : oa > ob ? 1 : 0;
+                      });
                     return (
                       <div key={lane} className="space-y-4">
                         {/* Lane Header with Visual Separator */}
