@@ -11,6 +11,12 @@ services:
       SWIMTRACK_HOST: 0.0.0.0
       SWIMTRACK_PORT: 5000
       SWIMTRACK_DB: /data/swimtrack.db
+      # Mailgun (read from .env on the host; never commit values to the repo)
+      MAILGUN_API_KEY: ${MAILGUN_API_KEY:-}
+      MAILGUN_DOMAIN: ${MAILGUN_DOMAIN:-}
+      MAILGUN_BASE_URL: ${MAILGUN_BASE_URL:-https://api.eu.mailgun.net/v3}
+      MAILGUN_FROM: ${MAILGUN_FROM:-}
+      APP_URL: ${APP_URL:-https://24swim.de}
     volumes:
       - type: bind
         source: /data

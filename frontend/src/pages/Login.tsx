@@ -15,8 +15,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Waves, Loader2, CheckCircle, Mail } from 'lucide-react';
 import { authApi } from '@/lib/api';
-import { sendPasswordResetEmail } from '@/lib/utils/emailService';
-import { User } from '@/types';
 
 const loginSchema = z.object({
   email: z.string().trim().min(1, 'Email is required').max(255),
@@ -53,15 +51,15 @@ export default function Login() {
           title: t.common.success,
           description: t.auth.loginSuccess,
         });
-        // Navigate will happen after auth state updates - check saved auth
+        // Navigate after auth state updates. If the backend flagged the
+        // account for a forced password change (after a server-side reset)
+        // we route to the change-password screen first.
         const savedAuth = localStorage.getItem('swimtrack_auth');
-        if (savedAuth) {
-          const auth = JSON.parse(savedAuth);
-          if (auth.user?.role === 'referee') {
-            navigate('/referee');
-          } else {
-            navigate('/organizer');
-          }
+        const auth = savedAuth ? JSON.parse(savedAuth) : null;
+        if (auth?.user?.forcePasswordChange && auth.user.role === 'organizer') {
+          navigate('/change-password?forced=1');
+        } else if (auth?.user?.role === 'referee') {
+          navigate('/referee');
         } else {
           navigate('/organizer');
         }
@@ -84,8 +82,16 @@ export default function Login() {
     }
   };
 
+  const openForgotPassword = () => {
+    // Pre-fill from the login form so the user doesn't retype.
+    const typed = form.getValues('email');
+    if (typed) setResetEmail(typed);
+    setShowForgotPassword(true);
+  };
+
   const handleForgotPassword = async () => {
-    if (!resetEmail.trim()) {
+    const target = resetEmail.trim();
+    if (!target) {
       toast({
         title: t.auth.emailRequired,
         description: t.auth.enterEmailAddress,
@@ -96,36 +102,14 @@ export default function Login() {
 
     setIsResetting(true);
     try {
-      // Check if user exists
-      const users = await authApi.getUsers();
-      const user = users.find((u: User) => u.email === resetEmail.trim());
-      
-      if (!user) {
-        toast({
-          title: t.auth.userNotFound,
-          description: t.auth.noAccountWithEmail,
-          variant: 'destructive',
-        });
-        setIsResetting(false);
-        return;
-      }
-
-      // Reset password and send via email
-      const result = await authApi.resetPassword(user.id, sendPasswordResetEmail);
-      
-      if (result.success) {
-        setEmailSent(true);
-        toast({
-          title: t.auth.resetSuccessful,
-          description: t.auth.resetPasswordSent,
-        });
-      } else {
-        toast({
-          title: t.auth.resetFailed,
-          description: result.error || t.auth.couldNotReset,
-          variant: 'destructive',
-        });
-      }
+      // The backend always returns a generic success to avoid leaking
+      // whether an account exists. The UI does the same.
+      await authApi.forgotPassword(target);
+      setEmailSent(true);
+      toast({
+        title: t.auth.resetSuccessful,
+        description: t.auth.resetPasswordSent,
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Something went wrong. Please try again.';
       toast({
@@ -184,7 +168,7 @@ export default function Login() {
                           type="button"
                           variant="link"
                           className="px-0 h-auto font-normal text-sm text-muted-foreground hover:text-primary"
-                          onClick={() => setShowForgotPassword(false)}
+                          onClick={openForgotPassword}
                         >
                           {t.auth.forgotPassword}
                         </Button>

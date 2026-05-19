@@ -4,9 +4,12 @@ import { authApi, isRemoteMode } from '@/lib/api';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string, role: UserRole) => Promise<boolean>;
+  register: (email: string, password: string, name: string, role: UserRole, language?: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (user: User) => void;
+  /** Merge fields into the in-memory user (and localStorage) without
+      hitting the API. Used by /change-password to clear forcePasswordChange. */
+  patchUser: (patch: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -49,9 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string, role: UserRole, language?: string): Promise<boolean> => {
     try {
-      const result = await authApi.register(email, password, name, role);
+      const result = await authApi.register(email, password, name, role, language);
       
       if (result.success && result.user) {
         const newAuthState = { isAuthenticated: true, user: result.user };
@@ -93,8 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const patchUser = (patch: Partial<User>) => {
+    if (!authState.user) return;
+    const newUser = { ...authState.user, ...patch };
+    const newAuthState = { isAuthenticated: true, user: newUser };
+    setAuthState(newAuthState);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(newAuthState));
+  };
+
   return (
-    <AuthContext.Provider value={{ ...authState, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ ...authState, login, register, logout, updateUser, patchUser }}>
       {children}
     </AuthContext.Provider>
   );

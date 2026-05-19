@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Waves, User, LogOut, LayoutDashboard, Timer, Menu } from 'lucide-react';
+import { Waves, User, LogOut, LayoutDashboard, Timer, Menu, KeyRound } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useState } from 'react';
 
@@ -90,6 +90,14 @@ export function Header() {
                       {t.common.liveMonitor}
                     </Link>
                   </DropdownMenuItem>
+                  {user.role === 'organizer' && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/change-password" className="flex items-center gap-2 cursor-pointer">
+                        <KeyRound className="h-4 w-4" />
+                        {t.auth.changePassword}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 cursor-pointer text-destructive">
                     <LogOut className="h-4 w-4" />
@@ -145,6 +153,15 @@ export function Header() {
                     >
                       {t.common.liveMonitor}
                     </Link>
+                    {user.role === 'organizer' && (
+                      <Link
+                        to="/change-password"
+                        className="text-lg font-medium hover:text-primary transition-colors"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        {t.auth.changePassword}
+                      </Link>
+                    )}
                     <Button variant="destructive" onClick={() => { handleLogout(); setMobileMenuOpen(false); }}>
                       {t.common.logout}
                     </Button>

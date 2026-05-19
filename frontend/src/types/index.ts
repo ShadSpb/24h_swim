@@ -8,6 +8,7 @@ export interface User {
   passwordHash: string; // SHA-256 hash of password
   role: UserRole;
   name: string;
+  forcePasswordChange?: boolean; // set after a server-side reset; cleared once user picks a new one
   createdAt: string;
 }
 

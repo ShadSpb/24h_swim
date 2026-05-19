@@ -317,5 +317,6 @@ def serialize_user(row: dict) -> dict:
         "email":     row["email"],
         "name":      row["name"],
         "role":      row["role"],
+        "forcePasswordChange": bool(row.get("force_password_change", 0)),
         "createdAt": row["created_at"],
     }

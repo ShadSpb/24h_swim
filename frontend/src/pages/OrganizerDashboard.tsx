@@ -44,6 +44,12 @@ export default function OrganizerDashboard() {
       navigate('/login');
       return;
     }
+    // After a server-side reset, organizers must pick a new password
+    // before they can use the dashboard.
+    if (user.forcePasswordChange) {
+      navigate('/change-password?forced=1');
+      return;
+    }
     void loadCompetitions();
   }, [isAuthenticated, user, navigate]);
 

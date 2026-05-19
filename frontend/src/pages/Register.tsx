@@ -29,7 +29,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const { register } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -47,7 +47,7 @@ export default function Register() {
     setIsLoading(true);
     try {
       // Organizers register themselves - referees are created by organizers
-      const success = await register(data.email, data.password, data.name, 'organizer');
+      const success = await register(data.email, data.password, data.name, 'organizer', language);
       if (success) {
         toast({
           title: t.common.success,

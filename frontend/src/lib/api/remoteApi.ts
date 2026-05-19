@@ -365,10 +365,10 @@ export class RemoteAuthApi implements AuthApi {
     }
   }
 
-  async register(email: string, password: string, name: string, role: UserRole): Promise<AuthResponse> {
+  async register(email: string, password: string, name: string, role: UserRole, language?: string): Promise<AuthResponse> {
     try {
       const result = await makeRequest<AuthResponse>(this.config, this.config.endpoints.register, 'POST', {
-        body: { email, password, name, role }
+        body: { email, password, name, role, language }
       });
       
       // Store session token if provided by backend
@@ -394,8 +394,35 @@ export class RemoteAuthApi implements AuthApi {
     throw new RemoteApiError('Password reset must be handled by remote API');
   }
 
-  async changePassword(): Promise<boolean> {
-    throw new RemoteApiError('Password change must be handled by remote API');
+  async forgotPassword(email: string): Promise<{ success: boolean }> {
+    try {
+      await makeRequest(this.config, '/auth/forgot-password', 'POST', { body: { email } });
+    } catch {
+      // Backend always answers generically. Swallow network errors so we
+      // don't leak account-existence info; the user-facing UX is the same.
+    }
+    return { success: true };
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await makeRequest<{ success: boolean; error?: string }>(
+        this.config,
+        '/auth/change-password',
+        'POST',
+        { body: { userId, currentPassword, newPassword } },
+      );
+      return result;
+    } catch (error) {
+      if (error instanceof RemoteApiError) {
+        return { success: false, error: error.message };
+      }
+      return { success: false, error: 'Failed to connect to authentication server' };
+    }
   }
 
   async getUsers(): Promise<User[]> {

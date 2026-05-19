@@ -109,10 +109,11 @@ class DynamicAuthApi implements AuthApi {
   }
 
   async login(email: string, password: string) { return this.getApi().login(email, password); }
-  async register(email: string, password: string, name: string, role: any) { return this.getApi().register(email, password, name, role); }
+  async register(email: string, password: string, name: string, role: any, language?: string) { return this.getApi().register(email, password, name, role, language); }
   async logout() { return this.getApi().logout(); }
   async resetPassword(userId: string) { return this.getApi().resetPassword(userId); }
-  async changePassword(userId: string, oldPassword: string, newPassword: string) { return this.getApi().changePassword(userId, oldPassword, newPassword); }
+  async forgotPassword(email: string) { return this.getApi().forgotPassword(email); }
+  async changePassword(userId: string, currentPassword: string, newPassword: string) { return this.getApi().changePassword(userId, currentPassword, newPassword); }
   async getUsers() { return this.getApi().getUsers(); }
   async getUserById(id: string) { return this.getApi().getUserById(id); }
   async saveUser(user: any) { return this.getApi().saveUser(user); }
