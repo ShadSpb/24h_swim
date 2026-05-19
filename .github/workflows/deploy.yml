@@ -24,6 +24,14 @@ jobs:
     env:
       DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
       DEPLOY_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || github.event.workflow_run.head_branch }}
+      # Runtime secrets forwarded to the server's docker-compose .env file.
+      # Empty values are skipped, so docker-compose's `${VAR:-default}` syntax
+      # keeps working for anything you haven't set in GitHub Secrets.
+      MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
+      MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
+      MAILGUN_BASE_URL: ${{ secrets.MAILGUN_BASE_URL }}
+      MAILGUN_FROM: ${{ secrets.MAILGUN_FROM }}
+      APP_URL: ${{ secrets.APP_URL }}
     steps:
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
@@ -32,7 +40,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script_stop: true
-          envs: DEPLOY_PATH,DEPLOY_REF
+          envs: DEPLOY_PATH,DEPLOY_REF,MAILGUN_API_KEY,MAILGUN_DOMAIN,MAILGUN_BASE_URL,MAILGUN_FROM,APP_URL
           script: |
             set -euo pipefail
 
@@ -65,6 +73,28 @@ jobs:
               ls -la
               exit 1
             fi
+
+            # Materialise .env from GitHub Secrets next to docker-compose.yml.
+            # File is written atomically (tmp + mv) with owner-only perms so
+            # in-flight reads never see a half-written file.
+            umask 077
+            tmp_env=".env.deploy.$$"
+            : > "${tmp_env}"
+            chmod 600 "${tmp_env}"
+            emit() {
+              # $1 = key, $2 = value. Skips empty values so docker-compose
+              # defaults still apply. Values are written verbatim — docker
+              # compose .env does not perform shell expansion on values.
+              [ -n "${2:-}" ] && printf '%s=%s\n' "$1" "$2" >> "${tmp_env}"
+            }
+            emit MAILGUN_API_KEY  "${MAILGUN_API_KEY:-}"
+            emit MAILGUN_DOMAIN   "${MAILGUN_DOMAIN:-}"
+            emit MAILGUN_BASE_URL "${MAILGUN_BASE_URL:-}"
+            emit MAILGUN_FROM     "${MAILGUN_FROM:-}"
+            emit APP_URL          "${APP_URL:-}"
+            mv -f "${tmp_env}" .env
+            chmod 600 .env
+            echo "Wrote .env with $(wc -l < .env) key(s) — values redacted in logs"
 
             if ! docker network inspect nginx-network >/dev/null 2>&1; then
               docker network create --subnet=10.200.0.0/24 nginx-network
