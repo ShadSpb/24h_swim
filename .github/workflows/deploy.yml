@@ -85,7 +85,11 @@ jobs:
               # $1 = key, $2 = value. Skips empty values so docker-compose
               # defaults still apply. Values are written verbatim — docker
               # compose .env does not perform shell expansion on values.
-              [ -n "${2:-}" ] && printf '%s=%s\n' "$1" "$2" >> "${tmp_env}"
+              # Use `if` (not `&&`) so an empty value returns 0 and doesn't
+              # trip `set -e` when this function is called at the top level.
+              if [ -n "${2:-}" ]; then
+                printf '%s=%s\n' "$1" "$2" >> "${tmp_env}"
+              fi
             }
             emit MAILGUN_API_KEY  "${MAILGUN_API_KEY:-}"
             emit MAILGUN_DOMAIN   "${MAILGUN_DOMAIN:-}"
