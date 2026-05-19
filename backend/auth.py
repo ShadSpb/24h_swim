@@ -100,6 +100,21 @@ def register():
         user = dict(db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone())
 
     logger.info("New organizer registered: %s", email)
+
+    # Best-effort welcome email. Registration must never fail because of
+    # delivery problems — log the issue and continue.
+    if email_service.is_configured():
+        lang = (data.get("language") or "").strip().lower()
+        try:
+            subject, text, html = email_service.render_welcome_email(
+                user["email"], user.get("name"), lang=lang or "de",
+            )
+            ok, err = email_service.send_email(user["email"], subject, text, html)
+            if not ok:
+                logger.warning("Welcome email not delivered to %s: %s", user["email"], err)
+        except Exception:
+            logger.exception("Welcome email failed for %s", user["email"])
+
     return jsonify({"success": True, "user": serialize_user(user)}), 201
 
 

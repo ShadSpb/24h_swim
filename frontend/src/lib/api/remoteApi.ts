@@ -365,10 +365,10 @@ export class RemoteAuthApi implements AuthApi {
     }
   }
 
-  async register(email: string, password: string, name: string, role: UserRole): Promise<AuthResponse> {
+  async register(email: string, password: string, name: string, role: UserRole, language?: string): Promise<AuthResponse> {
     try {
       const result = await makeRequest<AuthResponse>(this.config, this.config.endpoints.register, 'POST', {
-        body: { email, password, name, role }
+        body: { email, password, name, role, language }
       });
       
       // Store session token if provided by backend

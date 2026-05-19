@@ -4,7 +4,7 @@ import { authApi, isRemoteMode } from '@/lib/api';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string, role: UserRole) => Promise<boolean>;
+  register: (email: string, password: string, name: string, role: UserRole, language?: string) => Promise<boolean>;
   logout: () => void;
   updateUser: (user: User) => void;
   /** Merge fields into the in-memory user (and localStorage) without
@@ -52,9 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string, role: UserRole, language?: string): Promise<boolean> => {
     try {
-      const result = await authApi.register(email, password, name, role);
+      const result = await authApi.register(email, password, name, role, language);
       
       if (result.success && result.user) {
         const newAuthState = { isAuthenticated: true, user: result.user };

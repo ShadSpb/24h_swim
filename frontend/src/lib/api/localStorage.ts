@@ -380,7 +380,8 @@ export class LocalStorageAuthApi implements AuthApi {
     return { success: false, error: 'Invalid credentials' };
   }
 
-  async register(email: string, password: string, name: string, role: UserRole): Promise<AuthResponse> {
+  async register(email: string, password: string, name: string, role: UserRole, _language?: string): Promise<AuthResponse> {
+    void _language;
     const users = await this.getUsers();
     
     if (users.find(u => u.email === email)) {

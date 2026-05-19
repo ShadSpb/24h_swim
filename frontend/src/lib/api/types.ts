@@ -147,7 +147,7 @@ export interface DataApi {
 // Auth API interface
 export interface AuthApi {
   login(email: string, password: string): Promise<AuthResponse>;
-  register(email: string, password: string, name: string, role: UserRole): Promise<AuthResponse>;
+  register(email: string, password: string, name: string, role: UserRole, language?: string): Promise<AuthResponse>;
   logout(): Promise<void>;
   resetPassword(userId: string, sendEmailFn?: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>): Promise<{ success: boolean; newPassword?: string; emailSent?: boolean; error?: string }>;
   /** Public self-service: trigger a server-side reset + Mailgun delivery. */
