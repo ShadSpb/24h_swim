@@ -27,6 +27,12 @@ services:
       timeout: 10s
       retries: 3
     networks:
+      # Internal bridge first → its gateway becomes the container's default
+      # route, which gives the backend a working outbound NAT (Docker installs
+      # MASQUERADE for compose-managed bridges automatically). The
+      # nginx-network is still attached so the reverse proxy and the frontend
+      # can reach the backend at 10.200.0.9 as before.
+      egress:
       nginx:
         ipv4_address: 10.200.0.9
 
@@ -52,3 +58,7 @@ networks:
   nginx:
     name: nginx-network
     external: true
+  # Compose-managed bridge dedicated to backend outbound traffic
+  # (Mailgun API, future webhooks). Subnet is auto-allocated by Docker.
+  egress:
+    driver: bridge
