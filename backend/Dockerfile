@@ -15,6 +15,7 @@ COPY app.py ./
 COPY auth.py ./
 COPY competitions.py ./
 COPY database.py ./
+COPY email_service.py ./
 COPY lap_counts.py ./
 COPY referees.py ./
 COPY stats.py ./
