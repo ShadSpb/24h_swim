@@ -83,7 +83,7 @@ def create_app() -> Flask:
     def check_api_key():
         if request.path == "/health" or request.method == "OPTIONS":
             return None
-        if request.path in ("/auth/login", "/auth/register"):
+        if request.path in ("/auth/login", "/auth/register", "/auth/forgot-password"):
             return None
         if API_KEY and request.headers.get("X-API-Key", "") != API_KEY:
             return jsonify({"error": "Invalid or missing API key"}), 401

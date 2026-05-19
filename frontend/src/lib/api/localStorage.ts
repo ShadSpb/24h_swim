@@ -435,19 +435,34 @@ export class LocalStorageAuthApi implements AuthApi {
     return { success: true, newPassword };
   }
 
-  async changePassword(userId: string, oldPassword: string, newPassword: string): Promise<boolean> {
-    const users = await this.getUsers();
-    const oldPasswordHash = await hashPassword(oldPassword);
-    const index = users.findIndex(u => u.id === userId && u.passwordHash === oldPasswordHash);
-    
-    if (index === -1) {
-      return false;
-    }
+  async forgotPassword(_email: string): Promise<{ success: boolean }> {
+    // Local mode has no real mail delivery; respond generically so the
+    // UX matches the remote path. Reset is not performed.
+    void _email;
+    return { success: true };
+  }
 
-    const newPasswordHash = await hashPassword(newPassword);
-    users[index].passwordHash = newPasswordHash;
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const users = await this.getUsers();
+    const oldPasswordHash = await hashPassword(currentPassword);
+    const index = users.findIndex(u => u.id === userId && u.passwordHash === oldPasswordHash);
+    if (index === -1) {
+      return { success: false, error: 'Invalid credentials' };
+    }
+    if (users[index].role !== 'organizer') {
+      return { success: false, error: 'Password change is only available for organizer accounts' };
+    }
+    if (newPassword.length < 8) {
+      return { success: false, error: 'New password must be at least 8 characters' };
+    }
+    users[index].passwordHash = await hashPassword(newPassword);
+    users[index].forcePasswordChange = false;
     saveItems(KEYS.users, users);
-    return true;
+    return { success: true };
   }
 
   async getUsers(): Promise<User[]> {

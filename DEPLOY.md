@@ -69,6 +69,51 @@ Configure these in repository Settings -> Secrets and variables -> Actions:
 - `DEPLOY_SSH_KEY`: private key (PEM/OpenSSH) for `DEPLOY_USER`
 - `DEPLOY_PATH`: absolute path to the checked-out repository on the server
 
+## Email Delivery (Mailgun)
+
+Password-reset emails are sent via the Mailgun HTTP API directly from the
+backend container. Credentials live in a `.env` file on the deploy server
+next to `docker-compose.yml` — Docker Compose loads them automatically.
+
+**Never commit this `.env` file. It is gitignored.**
+
+On the server, create `${DEPLOY_PATH}/.env` with:
+
+```ini
+# Required
+MAILGUN_API_KEY=key-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+MAILGUN_DOMAIN=mg.24swim.de
+
+# Optional — use api.mailgun.net for US-region accounts.
+# Default points to the EU region (most German Mailgun signups).
+MAILGUN_BASE_URL=https://api.eu.mailgun.net/v3
+
+# Optional — From header. Defaults to no-reply@${MAILGUN_DOMAIN}.
+MAILGUN_FROM="24swim.de <no-reply@mg.24swim.de>"
+
+# Optional — used in email links. Defaults to https://24swim.de.
+APP_URL=https://24swim.de
+```
+
+After editing, restart the backend container:
+
+```bash
+docker compose -f docker-compose.yml up -d --build swimtrack_api
+```
+
+Steps to get the credentials:
+
+1. Sign up at <https://signup.mailgun.com> (EU region recommended for GDPR).
+2. Add and verify your sending domain (e.g. `mg.24swim.de`) by adding the
+   DNS records Mailgun shows you to your DNS provider.
+3. From "Sending → API Keys", copy the **Private API key** — this is the
+   value for `MAILGUN_API_KEY`. Treat it like a password.
+4. From "Sending → Domains", the domain you verified is `MAILGUN_DOMAIN`.
+
+If `MAILGUN_API_KEY` or `MAILGUN_DOMAIN` is unset, the backend logs a
+warning when a reset is requested and silently no-ops (the user still
+sees a generic success message; no password is changed).
+
 ### Server bootstrap (one-time)
 
 On the deployment server:

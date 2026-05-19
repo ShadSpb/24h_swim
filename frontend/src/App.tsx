@@ -13,6 +13,7 @@ import Register from "./pages/Register";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
 import RefereeDashboard from "./pages/RefereeDashboard";
 import Monitor from "./pages/Monitor";
+import ChangePassword from "./pages/ChangePassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/organizer" element={<OrganizerDashboard />} />
+              <Route path="/change-password" element={<ChangePassword />} />
               <Route path="/referee" element={<RefereeDashboard />} />
               <Route path="/monitor" element={<Monitor />} />
               <Route path="/monitor/:competitionId" element={<Monitor />} />

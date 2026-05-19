@@ -7,6 +7,9 @@ interface AuthContextType extends AuthState {
   register: (email: string, password: string, name: string, role: UserRole) => Promise<boolean>;
   logout: () => void;
   updateUser: (user: User) => void;
+  /** Merge fields into the in-memory user (and localStorage) without
+      hitting the API. Used by /change-password to clear forcePasswordChange. */
+  patchUser: (patch: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -93,8 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const patchUser = (patch: Partial<User>) => {
+    if (!authState.user) return;
+    const newUser = { ...authState.user, ...patch };
+    const newAuthState = { isAuthenticated: true, user: newUser };
+    setAuthState(newAuthState);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(newAuthState));
+  };
+
   return (
-    <AuthContext.Provider value={{ ...authState, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ ...authState, login, register, logout, updateUser, patchUser }}>
       {children}
     </AuthContext.Provider>
   );

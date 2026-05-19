@@ -196,7 +196,7 @@ export const translations = {
       forgotPassword: 'Passwort vergessen?',
       resetPassword: 'Passwort zurücksetzen',
       resetPasswordDesc: 'Geben Sie Ihre E-Mail-Adresse ein und wir senden Ihnen ein neues Passwort.',
-      resetPasswordSent: 'Ihr Passwort wurde zurückgesetzt und an Ihre E-Mail-Adresse gesendet.',
+      resetPasswordSent: 'Falls ein Konto für diese E-Mail-Adresse existiert, haben wir gerade ein neues Passwort gesendet.',
       emailAddress: 'E-Mail-Adresse',
       enterEmail: 'Geben Sie Ihre E-Mail ein',
       sendResetEmail: 'Zurücksetzungs-E-Mail senden',
@@ -215,6 +215,17 @@ export const translations = {
       loginFailed: 'Ungültige E-Mail oder Passwort.',
       welcomeToSwimTrack: 'Willkommen bei 24swim.de.',
       accountExists: 'Ein Konto mit dieser E-Mail existiert bereits.',
+      // Change-password flow
+      changePassword: 'Passwort ändern',
+      changePasswordDesc: 'Wählen Sie ein neues Passwort für Ihr Organisator-Konto.',
+      currentPassword: 'Aktuelles Passwort',
+      newPassword: 'Neues Passwort',
+      confirmPassword: 'Neues Passwort bestätigen',
+      passwordChanged: 'Passwort erfolgreich geändert',
+      changeFailed: 'Passwort konnte nicht geändert werden',
+      passwordChangeRequired: 'Passwortänderung erforderlich',
+      passwordChangeRequiredDesc: 'Ihr Passwort wurde kürzlich zurückgesetzt. Bitte wählen Sie jetzt ein neues, persönliches Passwort.',
+      resetPasswordSentGeneric: 'Wenn ein Konto für diese E-Mail-Adresse existiert, haben wir gerade ein neues Passwort gesendet.',
     },
 
     // Competition
@@ -788,7 +799,7 @@ export const translations = {
       forgotPassword: 'Forgot password?',
       resetPassword: 'Reset Password',
       resetPasswordDesc: 'Enter your email address and we\'ll send you a new password.',
-      resetPasswordSent: 'Your password has been reset and sent to your email address.',
+      resetPasswordSent: 'If an account exists for that address, we just emailed a new password.',
       emailAddress: 'Email address',
       enterEmail: 'Enter your email',
       sendResetEmail: 'Send Reset Email',
@@ -807,6 +818,17 @@ export const translations = {
       loginFailed: 'Invalid email or password.',
       welcomeToSwimTrack: 'Welcome to SwimTrack 24.',
       accountExists: 'An account with this email already exists.',
+      // Change-password flow
+      changePassword: 'Change password',
+      changePasswordDesc: 'Pick a new password for your organizer account.',
+      currentPassword: 'Current password',
+      newPassword: 'New password',
+      confirmPassword: 'Confirm new password',
+      passwordChanged: 'Password updated',
+      changeFailed: 'Could not change password',
+      passwordChangeRequired: 'Password change required',
+      passwordChangeRequiredDesc: 'Your password was recently reset. Please choose a new, personal password before continuing.',
+      resetPasswordSentGeneric: 'If an account exists for that address, we just emailed a new password.',
     },
 
     // Competition

@@ -96,6 +96,7 @@ def init_db() -> None:
         _migrate_swimmers_date_of_birth(conn)
         _migrate_competitions_bird_windows(conn)
         _migrate_competitions_slug(conn)
+        _migrate_users_force_password_change(conn)
         _migrate_legacy_user_passwords(conn)
     _harden_sidecar_files(_db_path())
     logger.info("Database initialised at %s", _db_path())
@@ -328,6 +329,17 @@ def _migrate_competitions_slug(conn: sqlite3.Connection) -> None:
             used.add(new_slug)
             conn.execute("UPDATE competitions SET slug = ? WHERE id = ?", (new_slug, cid))
             logger.info("Released slug %s -> %s for ended competition %s", slug, new_slug, cid)
+
+
+def _migrate_users_force_password_change(conn: sqlite3.Connection) -> None:
+    """Add users.force_password_change so a reset can require a new password
+    on the very next sign-in."""
+    cols = {c["name"] for c in conn.execute("PRAGMA table_info(users)").fetchall()}
+    if "force_password_change" not in cols:
+        logger.info("Applying migration: users ADD COLUMN force_password_change")
+        conn.execute(
+            "ALTER TABLE users ADD COLUMN force_password_change INTEGER NOT NULL DEFAULT 0"
+        )
 
 
 def row_to_dict(row: sqlite3.Row) -> dict:

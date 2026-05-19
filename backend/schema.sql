@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     password    TEXT NOT NULL,              -- one-way password hash (PBKDF2/scrypt)
     role        TEXT NOT NULL CHECK(role IN ('organizer', 'referee')),
     disabled    INTEGER NOT NULL DEFAULT 0,
+    force_password_change INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 

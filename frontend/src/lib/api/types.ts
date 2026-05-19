@@ -150,7 +150,10 @@ export interface AuthApi {
   register(email: string, password: string, name: string, role: UserRole): Promise<AuthResponse>;
   logout(): Promise<void>;
   resetPassword(userId: string, sendEmailFn?: (email: string, password: string, name?: string) => Promise<{ success: boolean; error?: string }>): Promise<{ success: boolean; newPassword?: string; emailSent?: boolean; error?: string }>;
-  changePassword(userId: string, oldPassword: string, newPassword: string): Promise<boolean>;
+  /** Public self-service: trigger a server-side reset + Mailgun delivery. */
+  forgotPassword(email: string): Promise<{ success: boolean }>;
+  /** Authenticated self-service for organizers; verifies currentPassword. */
+  changePassword(userId: string, currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }>;
   getUsers(): Promise<User[]>;
   getUserById(id: string): Promise<User | undefined>;
   saveUser(user: User): Promise<void>;
