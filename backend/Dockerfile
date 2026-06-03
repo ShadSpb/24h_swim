@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy only runtime sources (avoid shipping local DB files/tests in the image).
 COPY app.py ./
+COPY authz.py ./
 COPY auth.py ./
 COPY competitions.py ./
 COPY database.py ./

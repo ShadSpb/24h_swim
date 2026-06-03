@@ -104,7 +104,17 @@ CREATE TABLE IF NOT EXISTS lap_counts (
     timestamp      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
+-- Sessions: server-side bearer tokens issued on login (auth + revocation)
+CREATE TABLE IF NOT EXISTS sessions (
+    token       TEXT PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,             -- unix epoch seconds
+    expires_at  INTEGER NOT NULL              -- unix epoch seconds
+);
+
 -- Indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_competitions_organizer ON competitions(organizer_id);
 CREATE INDEX IF NOT EXISTS idx_teams_competition ON teams(competition_id);
 CREATE INDEX IF NOT EXISTS idx_swimmers_competition ON swimmers(competition_id);

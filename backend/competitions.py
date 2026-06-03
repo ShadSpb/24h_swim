@@ -14,6 +14,7 @@ from utils import (
     new_uuid, ok, created, success, error, not_found,
     serialize_competition, generate_competition_slug, short_uuid_slug,
 )
+import authz
 
 ENDED_STATUSES = ("completed", "stopped")
 
@@ -95,19 +96,17 @@ def get_competition(cid):
 def create_competition():
     data = request.get_json(silent=True) or {}
 
-    required = ["name", "date", "location", "startTime", "organizerId", "numberOfLanes"]
+    required = ["name", "date", "location", "startTime", "numberOfLanes"]
     missing  = [f for f in required if not data.get(f)]
     if missing:
         return error(f"Missing required fields: {', '.join(missing)}")
 
-    # Validate organizer exists
-    with get_db() as db:
-        org = db.execute(
-            "SELECT id FROM users WHERE id = ? AND role = 'organizer'",
-            (data["organizerId"],),
-        ).fetchone()
-    if not org:
-        return error("Organizer not found or not an organizer", 404)
+    # The owner is the authenticated organizer — never trust a client-supplied
+    # organizerId (that would let one organizer create competitions as another).
+    caller = authz.current_user()
+    if not caller or caller["role"] != "organizer":
+        return error("Only organizers can create competitions", 403)
+    organizer_id = caller["id"]
 
     try:
         early_h, late_h, window_m = _validate_bird_config(data)
@@ -136,7 +135,7 @@ def create_competition():
                 int(data["numberOfLanes"]),
                 int(data.get("laneLength", 25)),
                 int(data.get("doubleCountTimeout", 15)),
-                data["organizerId"],
+                organizer_id,
                 "upcoming",
                 early_h,
                 late_h,
@@ -158,6 +157,10 @@ def update_competition(cid):
         ).fetchone()
     if not existing:
         return not_found("Competition")
+
+    guard = authz.require_owner(cid)
+    if guard:
+        return guard
 
     data = request.get_json(silent=True) or {}
     ex   = dict(existing)
@@ -248,6 +251,10 @@ def delete_competition(cid):
         ).fetchone()
     if not existing:
         return not_found("Competition")
+
+    guard = authz.require_owner(cid)
+    if guard:
+        return guard
 
     # Count before cascade delete (for response)
     with get_db() as db:

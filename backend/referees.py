@@ -13,6 +13,7 @@ from utils import (
     new_uuid, ok, created, success, error, not_found,
     serialize_referee, generate_human_password, generate_referee_user_id, hash_password,
 )
+import authz
 
 referees_bp = Blueprint("referees", __name__)
 logger      = logging.getLogger(__name__)
@@ -22,6 +23,19 @@ logger      = logging.getLogger(__name__)
 def list_referees():
     competition_id = request.args.get("competitionId")
     user_id_filter = request.args.get("userId")
+
+    # Never dump the whole referee table. Either scope to a competition the
+    # caller is a member of, or let a referee look up their own assignment.
+    if not competition_id and not user_id_filter:
+        return error("competitionId or userId is required")
+    if competition_id:
+        guard = authz.require_member(competition_id)
+        if guard:
+            return guard
+    if user_id_filter:
+        u = authz.current_user()
+        if u and u["role"] == "referee" and user_id_filter != u["email"]:
+            return error("Forbidden", 403)
 
     query  = "SELECT r.*, u.email as user_email FROM referees r JOIN users u ON r.user_id = u.id WHERE 1=1"
     params = []
@@ -54,6 +68,10 @@ def create_referee():
 
     if not competition_id:
         return error("competitionId is required")
+
+    guard = authz.require_owner(competition_id)
+    if guard:
+        return guard
 
     with get_db() as db:
         if not db.execute("SELECT id FROM competitions WHERE id=?", (competition_id,)).fetchone():
@@ -101,6 +119,12 @@ def delete_referee(rid):
 
     ref_dict = dict(ref)
 
+    guard = authz.require_owner(ref_dict["competition_id"])
+    if guard:
+        return guard
+
+    authz.delete_sessions_for_user(ref_dict["user_id"])
+
     with get_db() as db:
         # Preserve lap history; DB FK sets lap_counts.referee_id to NULL on referee delete.
         db.execute("DELETE FROM referees WHERE id=?", (rid,))
@@ -119,11 +143,17 @@ def reset_referee_password(rid):
     if not ref:
         return not_found("Referee")
 
+    ref_dict = dict(ref)
+    guard = authz.require_owner(ref_dict["competition_id"])
+    if guard:
+        return guard
+
     new_pw = generate_human_password()
     new_pw_hash = hash_password(new_pw)
     with get_db() as db:
-        db.execute("UPDATE users SET password=? WHERE id=?", (new_pw_hash, dict(ref)["user_id"]))
+        db.execute("UPDATE users SET password=? WHERE id=?", (new_pw_hash, ref_dict["user_id"]))
         db.commit()
 
+    authz.delete_sessions_for_user(ref_dict["user_id"])
     logger.info("Password reset for referee %s", rid)
     return success({"newPassword": new_pw})

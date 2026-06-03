@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request
 from database import get_db
 from utils import new_uuid, ok, created, error, too_many_requests, serialize_lap_count
+import authz
 
 lap_counts_bp = Blueprint("lap_counts", __name__)
 logger        = logging.getLogger(__name__)
@@ -29,10 +30,14 @@ def list_lap_counts():
     team_id        = request.args.get("teamId")
     swimmer_id     = request.args.get("swimmerId")
 
-    query  = "SELECT * FROM lap_counts WHERE 1=1"
-    params = []
-    if competition_id:
-        query += " AND competition_id = ?"; params.append(competition_id)
+    if not competition_id:
+        return error("competitionId is required")
+    guard = authz.require_member(competition_id)
+    if guard:
+        return guard
+
+    query  = "SELECT * FROM lap_counts WHERE competition_id = ?"
+    params = [competition_id]
     if team_id:
         query += " AND team_id = ?";        params.append(team_id)
     if swimmer_id:
@@ -66,6 +71,17 @@ def record_lap():
     team_id        = data["teamId"]
     swimmer_id     = data["swimmerId"]
     referee_id     = data["refereeId"]
+
+    # Authorization: only a referee assigned to this competition (or its
+    # organizer) may record laps. A referee's laps are always attributed to
+    # their own referee id — never a client-supplied one — so a tampered
+    # refereeId in the body cannot impersonate another official.
+    guard = authz.require_member(competition_id)
+    if guard:
+        return guard
+    ref = authz.referee_record(competition_id)
+    if ref:
+        referee_id = ref["id"]
 
     # 1. Competition status
     with get_db() as db:
