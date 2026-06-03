@@ -11,11 +11,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { Competition, Team, Swimmer, Referee, SwimSession } from '@/types';
-import { 
+import {
   dataApi,
   canCountLap,
   LapCount
 } from '@/lib/api';
+import { useConnectionStatus } from '@/hooks/useConnectionStatus';
+import { ConnectionIndicator } from '@/components/competition/ConnectionIndicator';
 import { Waves, AlertCircle, UserCheck, UserX, RefreshCw, Repeat } from 'lucide-react';
 
 export default function RefereeDashboard() {
@@ -40,6 +42,20 @@ export default function RefereeDashboard() {
   const [selectedTeamForSwimmer, setSelectedTeamForSwimmer] = useState<string>('');
   const [laneFilter, setLaneFilter] = useState<string>('all');
   const [changeSwimmerSession, setChangeSwimmerSession] = useState<SwimSession | null>(null);
+
+  // Connectivity tracking: a lightweight periodic probe plus per-request
+  // success/failure signals so the referee can see at a glance whether their
+  // taps are actually reaching the server. The probe re-reads active sessions
+  // (a cheap call) purely to confirm reachability; its result is discarded.
+  const connection = useConnectionStatus(
+    !!selectedCompetition,
+    async () => {
+      if (selectedCompetition) {
+        await dataApi.getActiveSwimSessions(selectedCompetition.id);
+      }
+    },
+  );
+  const { markSynced, markSyncError } = connection;
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'referee') {
@@ -122,7 +138,9 @@ export default function RefereeDashboard() {
       });
       setLapCounts(counts);
       setActiveSessions(sessions.filter(s => s.isActive));
+      markSynced();
     } catch (error) {
+      markSyncError();
       const errorMessage = error instanceof Error ? error.message : 'Failed to load competition data';
       toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
@@ -139,7 +157,9 @@ export default function RefereeDashboard() {
         setActiveSessions(sessions.filter(s => s.isActive));
         toast({ title: t.refereeDashboard.statusRefreshed });
       }
+      markSynced();
     } catch (error) {
+      markSyncError();
       const errorMessage = error instanceof Error ? error.message : 'Failed to refresh competition';
       toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
@@ -313,12 +333,14 @@ export default function RefereeDashboard() {
     
     try {
       await dataApi.addLapCount(lapCount);
+      markSynced();
     } catch (error) {
+      markSyncError();
       const errorMessage = error instanceof Error ? error.message : 'Failed to count lap';
       toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
       return;
     }
-    
+
     // Update local state
     setLapCounts(prev => ({ ...prev, [teamId]: newLapNumber }));
     setLastCountTime(prev => ({ ...prev, [session.swimmerId]: Date.now() }));
@@ -442,7 +464,9 @@ export default function RefereeDashboard() {
                     <p className="text-sm text-muted-foreground">{t.refereeDashboard.activeSwimmers}</p>
                     <p className="font-semibold text-2xl">{activeSessions.length}</p>
                   </div>
-                  
+
+                  <ConnectionIndicator online={connection.online} lastSyncedAt={connection.lastSyncedAt} />
+
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => { void refreshCompetition(); }}>
                       <RefreshCw className="h-4 w-4 mr-1" />

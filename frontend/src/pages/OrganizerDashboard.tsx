@@ -13,10 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Competition, Team, Swimmer, Referee, User } from '@/types';
 import { dataApi, getSessionToken, getStorageConfig, isRemoteMode } from '@/lib/api';
-import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText, Download } from 'lucide-react';
 import { CompetitionControls } from '@/components/competition/CompetitionControls';
 import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/utils/password';
-import { downloadPDF } from '@/lib/utils/pdfGenerator';
+import { downloadDataUri, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
 
 export default function OrganizerDashboard() {
   const { isAuthenticated, user } = useAuth();
@@ -410,9 +410,34 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const handleDownloadPDF = (comp: Competition) => {
-    if (comp.resultsPdf) {
-      downloadPDF(comp.resultsPdf, `${comp.name.replace(/\s+/g, '_')}_results.pdf`);
+  const fetchCompetitionRawData = async (comp: Competition) => {
+    const [compTeams, compSwimmers, compLapCounts] = await Promise.all([
+      dataApi.getTeamsByCompetition(comp.id),
+      dataApi.getSwimmersByCompetition(comp.id),
+      dataApi.getLapCountsByCompetition(comp.id),
+    ]);
+    return { compTeams, compSwimmers, compLapCounts };
+  };
+
+  const handleDownloadPDF = async (comp: Competition) => {
+    try {
+      const { compTeams, compSwimmers, compLapCounts } = await fetchCompetitionRawData(comp);
+      const pdfDataUri = generateCompetitionResultsPDF(comp, compTeams, compSwimmers, compLapCounts);
+      downloadDataUri(pdfDataUri, `${comp.name.replace(/\s+/g, '_')}_results.pdf`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : od.errorLoadCompetitionData;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadCSV = async (comp: Competition) => {
+    try {
+      const { compTeams, compSwimmers, compLapCounts } = await fetchCompetitionRawData(comp);
+      const csvDataUri = generateCompetitionResultsCSV(comp, compTeams, compSwimmers, compLapCounts);
+      downloadDataUri(csvDataUri, `${comp.name.replace(/\s+/g, '_')}_raw_data.csv`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : od.errorLoadCompetitionData;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -593,10 +618,15 @@ export default function OrganizerDashboard() {
                       <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/monitor/${comp.id}`); }}>
                         <Eye className="h-3 w-3" />
                       </Button>
-                      {comp.status === 'completed' && comp.resultsPdf && (
-                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleDownloadPDF(comp); }} title={od.downloadResults}>
-                          <FileText className="h-3 w-3" />
-                        </Button>
+                      {comp.status === 'completed' && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); void handleDownloadPDF(comp); }} title={od.downloadProtocol}>
+                            <FileText className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); void handleDownloadCSV(comp); }} title={od.downloadCsv}>
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </>
                       )}
                       <Button size="sm" variant="destructive" onClick={(e) => { e.stopPropagation(); void deleteCompetition(comp.id); }}>
                         <Trash2 className="h-3 w-3" />

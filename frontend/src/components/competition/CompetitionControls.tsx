@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Competition } from '@/types';
 import { dataApi } from '@/lib/api';
-import { downloadPDF, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
-import { Play, Square, Clock, Pause, AlertTriangle } from 'lucide-react';
+import { downloadDataUri, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
+import { Play, Square, Clock, Pause, AlertTriangle, FileText, Download } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CompetitionControlsProps {
@@ -119,7 +119,7 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
       // Generate PDF with results
       const pdfDataUri = generateCompetitionResultsPDF(competition, teams, swimmers, lapCounts);
       const filename = `${competition.name.replace(/\s+/g, '_')}_results.pdf`;
-      downloadPDF(pdfDataUri, filename);
+      downloadDataUri(pdfDataUri, filename);
 
       const updated: Competition = {
         ...competition,
@@ -148,6 +148,38 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
       toast({ title: t.toast.competitionFinished, description: 'Results PDF has been generated' });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to finish competition';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
+  const safeName = competition.name.replace(/\s+/g, '_');
+
+  const handleDownloadProtocol = async () => {
+    try {
+      const [teams, swimmers, lapCounts] = await Promise.all([
+        dataApi.getTeamsByCompetition(competition.id),
+        dataApi.getSwimmersByCompetition(competition.id),
+        dataApi.getLapCountsByCompetition(competition.id),
+      ]);
+      const pdfDataUri = generateCompetitionResultsPDF(competition, teams, swimmers, lapCounts);
+      downloadDataUri(pdfDataUri, `${safeName}_results.pdf`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate protocol';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
+  const handleDownloadCsv = async () => {
+    try {
+      const [teams, swimmers, lapCounts] = await Promise.all([
+        dataApi.getTeamsByCompetition(competition.id),
+        dataApi.getSwimmersByCompetition(competition.id),
+        dataApi.getLapCountsByCompetition(competition.id),
+      ]);
+      const csvDataUri = generateCompetitionResultsCSV(competition, teams, swimmers, lapCounts);
+      downloadDataUri(csvDataUri, `${safeName}_raw_data.csv`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate CSV';
       toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
   };
@@ -241,15 +273,36 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
             </Button>
           )}
 
-          <Button
-            onClick={() => { void handleFinish(); }}
-            disabled={!canFinish}
-            variant="secondary"
-            className="gap-2"
-          >
-            <Square className="h-4 w-4" />
-            {t.competition.finishCompetition}
-          </Button>
+          {canFinish && (
+            <Button
+              onClick={() => { void handleFinish(); }}
+              variant="secondary"
+              className="gap-2"
+            >
+              <Square className="h-4 w-4" />
+              {t.competition.finishCompetition}
+            </Button>
+          )}
+
+          {competition.status === 'completed' && (
+            <>
+              <Button
+                onClick={() => { void handleDownloadProtocol(); }}
+                className="gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                {t.organizerDashboard.downloadProtocol}
+              </Button>
+              <Button
+                onClick={() => { void handleDownloadCsv(); }}
+                variant="outline"
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {t.organizerDashboard.downloadCsv}
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Status info */}
