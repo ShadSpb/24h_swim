@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Competition } from '@/types';
 import { dataApi } from '@/lib/api';
-import { downloadDataUri, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
-import { Play, Square, Clock, Pause, AlertTriangle, FileText, Download } from 'lucide-react';
+import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
+import { Play, Square, Clock, Pause, AlertTriangle, FileText, Download, ScrollText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CompetitionControlsProps {
@@ -184,6 +184,21 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
     }
   };
 
+  const handleDownloadFullLog = async () => {
+    try {
+      const [teams, swimmers, lapCounts] = await Promise.all([
+        dataApi.getTeamsByCompetition(competition.id),
+        dataApi.getSwimmersByCompetition(competition.id),
+        dataApi.getLapCountsByCompetition(competition.id),
+      ]);
+      const logDataUri = generateCompetitionFullLogCSV(competition, teams, swimmers, lapCounts);
+      downloadDataUri(logDataUri, `${safeName}_full_log.csv`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate competition log';
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
   const getStatusBadge = () => {
     switch (competition.status) {
       case 'upcoming':
@@ -284,6 +299,17 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
             </Button>
           )}
 
+          {/* CSV summary is available at any time, before and after finish. */}
+          <Button
+            onClick={() => { void handleDownloadCsv(); }}
+            variant="outline"
+            className="gap-2"
+          >
+            <Download className="h-4 w-4" />
+            {t.organizerDashboard.downloadCsv}
+          </Button>
+
+          {/* Protocol PDF and the full lap log are only meaningful once finished. */}
           {competition.status === 'completed' && (
             <>
               <Button
@@ -294,12 +320,12 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
                 {t.organizerDashboard.downloadProtocol}
               </Button>
               <Button
-                onClick={() => { void handleDownloadCsv(); }}
+                onClick={() => { void handleDownloadFullLog(); }}
                 variant="outline"
                 className="gap-2"
               >
-                <Download className="h-4 w-4" />
-                {t.organizerDashboard.downloadCsv}
+                <ScrollText className="h-4 w-4" />
+                {t.organizerDashboard.downloadFullLog}
               </Button>
             </>
           )}
