@@ -13,10 +13,10 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Competition, Team, Swimmer, Referee, User } from '@/types';
 import { dataApi, getSessionToken, getStorageConfig, isRemoteMode } from '@/lib/api';
-import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText, Download } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText, Download, ScrollText } from 'lucide-react';
 import { CompetitionControls } from '@/components/competition/CompetitionControls';
 import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/utils/password';
-import { downloadDataUri, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
+import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
 
 export default function OrganizerDashboard() {
   const { isAuthenticated, user } = useAuth();
@@ -441,6 +441,17 @@ export default function OrganizerDashboard() {
     }
   };
 
+  const handleDownloadFullLog = async (comp: Competition) => {
+    try {
+      const { compTeams, compSwimmers, compLapCounts } = await fetchCompetitionRawData(comp);
+      const logDataUri = generateCompetitionFullLogCSV(comp, compTeams, compSwimmers, compLapCounts);
+      downloadDataUri(logDataUri, `${comp.name.replace(/\s+/g, '_')}_full_log.csv`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : od.errorLoadCompetitionData;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    }
+  };
+
   const deleteTeam = async (id: string) => {
     try {
       await dataApi.deleteTeam(id);
@@ -618,13 +629,18 @@ export default function OrganizerDashboard() {
                       <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); navigate(`/monitor/${comp.id}`); }}>
                         <Eye className="h-3 w-3" />
                       </Button>
+                      {/* CSV summary: available any time, before and after finish. */}
+                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); void handleDownloadCSV(comp); }} title={od.downloadCsv}>
+                        <Download className="h-3 w-3" />
+                      </Button>
+                      {/* Protocol PDF and full lap log: only once finished. */}
                       {comp.status === 'completed' && (
                         <>
                           <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); void handleDownloadPDF(comp); }} title={od.downloadProtocol}>
                             <FileText className="h-3 w-3" />
                           </Button>
-                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); void handleDownloadCSV(comp); }} title={od.downloadCsv}>
-                            <Download className="h-3 w-3" />
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); void handleDownloadFullLog(comp); }} title={od.downloadFullLog}>
+                            <ScrollText className="h-3 w-3" />
                           </Button>
                         </>
                       )}

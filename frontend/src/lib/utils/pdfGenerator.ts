@@ -296,6 +296,16 @@ function escapeCsv(value: string | number): string {
   return str;
 }
 
+// Build a downloadable CSV data URI from a header row and body rows.
+// Prepends a UTF-8 BOM so Excel detects the encoding (umlauts in German names).
+function buildCsvDataUri(header: (string | number)[], rows: (string | number)[][]): string {
+  const lines = [header, ...rows]
+    .map(cols => cols.map(escapeCsv).join(','))
+    .join('\r\n');
+  const bom = String.fromCharCode(0xfeff);
+  return `data:text/csv;charset=utf-8,${encodeURIComponent(bom + lines)}`;
+}
+
 /**
  * Raw, per-swimmer CSV export for the organizer. One row per swimmer with all
  * underlying fields so the data can be re-analysed in a spreadsheet.
@@ -323,14 +333,46 @@ export function generateCompetitionResultsCSV(
     stats.swimmer.isUnder12 ? 'yes' : 'no',
   ]);
 
-  const lines = [header, ...rows]
-    .map(cols => cols.map(escapeCsv).join(','))
-    .join('\r\n');
+  return buildCsvDataUri(header, rows);
+}
 
-  // Prepend a BOM so Excel detects UTF-8 (umlauts in German names).
-  const bom = String.fromCharCode(0xfeff);
-  const csv = bom + lines;
-  return `data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`;
+/**
+ * Full competition log: one row per recorded lap (the raw lap_counts table),
+ * ordered chronologically. Team/swimmer names are resolved for readability and
+ * the underlying ids are kept so the export is a faithful copy of the log.
+ */
+export function generateCompetitionFullLogCSV(
+  competition: Competition,
+  teams: Team[],
+  swimmers: Swimmer[],
+  lapCounts: LapCount[]
+): string {
+  const teamName = new Map(teams.map(t => [t.id, t.name]));
+  const swimmerName = new Map(swimmers.map(s => [s.id, s.name]));
+
+  const ordered = [...lapCounts].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
+  const header = [
+    '#', 'Timestamp', 'Lane', 'Team', 'Swimmer', 'Lap Number',
+    'Referee ID', 'Lap ID', 'Team ID', 'Swimmer ID',
+  ];
+
+  const rows = ordered.map((lap, index) => [
+    index + 1,
+    lap.timestamp,
+    lap.laneNumber,
+    teamName.get(lap.teamId) || '',
+    swimmerName.get(lap.swimmerId) || '',
+    lap.lapNumber,
+    lap.refereeId,
+    lap.id,
+    lap.teamId,
+    lap.swimmerId,
+  ]);
+
+  return buildCsvDataUri(header, rows);
 }
 
 // Generic data-URI download trigger (used for both PDF and CSV).
