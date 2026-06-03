@@ -23,6 +23,7 @@ COPY swim_sessions.py ./
 COPY swimmers.py ./
 COPY teams.py ./
 COPY utils.py ./
+COPY feedback.py ./
 COPY schema.sql ./
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
