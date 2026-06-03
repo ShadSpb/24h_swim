@@ -39,11 +39,19 @@ def is_configured() -> bool:
     return bool(c["api_key"] and c["domain"])
 
 
-def send_email(to: str, subject: str, text: str, html: str | None = None) -> tuple[bool, str | None]:
+def send_email(
+    to: str,
+    subject: str,
+    text: str,
+    html: str | None = None,
+    reply_to: str | None = None,
+) -> tuple[bool, str | None]:
     """
     Send one email via Mailgun. Returns (ok, error_message).
     `to` must be a single address (this helper deliberately does not
     accept bulk lists — the only senders here are 1:1 transactional).
+    `reply_to`, when given, sets the Reply-To header so replies go to a
+    different address than the (domain-locked) From.
     """
     cfg = _config()
     if not cfg["api_key"] or not cfg["domain"]:
@@ -63,6 +71,8 @@ def send_email(to: str, subject: str, text: str, html: str | None = None) -> tup
     }
     if html:
         fields["html"] = html
+    if reply_to and "@" in reply_to:
+        fields["h:Reply-To"] = reply_to
     body = _urlparse.urlencode(fields).encode("utf-8")
 
     auth = b64encode(f"api:{cfg['api_key']}".encode("ascii")).decode("ascii")
@@ -251,5 +261,28 @@ def render_password_reset(email: str, new_password: str, name: str | None = None
   <p style="color:#888;font-size:12px;margin-top:24px">
     If you did not request this reset, please contact the competition organizer immediately.
   </p>
+</body></html>"""
+    return subject, text, html
+
+
+def render_question_email(question: str, from_email: str | None = None) -> tuple[str, str, str]:
+    """Return (subject, text, html) for a FAQ 'Ask a question' submission."""
+    subject = "24swim.de - Question"
+    sender = (from_email or "").strip() or "(no email provided)"
+    text = (
+        "A new question was submitted via the 24swim.de FAQ page.\n\n"
+        f"From: {sender}\n\n"
+        "Question:\n"
+        f"{question}\n"
+    )
+    # Escape user-supplied content for the HTML part.
+    from html import escape as _esc
+    html = f"""<!doctype html>
+<html><body style="font-family:Arial,sans-serif;color:#222;max-width:560px;margin:24px auto;line-height:1.5">
+  <h2 style="color:#0ea5e9">24swim.de — New question</h2>
+  <p><strong>From:</strong> {_esc(sender)}</p>
+  <p><strong>Question:</strong></p>
+  <p style="background:#f4f6f8;padding:12px 16px;border-radius:6px;white-space:pre-wrap">{_esc(question)}</p>
+  <p style="color:#888;font-size:12px;margin-top:24px">Submitted via the FAQ page. Reply directly to answer the sender.</p>
 </body></html>"""
     return subject, text, html

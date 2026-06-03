@@ -25,6 +25,7 @@ from referees import referees_bp
 from swim_sessions import sessions_bp
 from lap_counts import lap_counts_bp
 from stats import stats_bp
+from feedback import feedback_bp
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,7 +40,7 @@ def create_app() -> Flask:
     init_db()
 
     for bp in (auth_bp, competitions_bp, teams_bp, swimmers_bp,
-               referees_bp, sessions_bp, lap_counts_bp, stats_bp):
+               referees_bp, sessions_bp, lap_counts_bp, stats_bp, feedback_bp):
         app.register_blueprint(bp)
 
     # ── CORS ──────────────────────────────────────────────────────────────────
@@ -83,7 +84,7 @@ def create_app() -> Flask:
     def check_api_key():
         if request.path == "/health" or request.method == "OPTIONS":
             return None
-        if request.path in ("/auth/login", "/auth/register", "/auth/forgot-password"):
+        if request.path in ("/auth/login", "/auth/register", "/auth/forgot-password", "/faq/question"):
             return None
         if API_KEY and request.headers.get("X-API-Key", "") != API_KEY:
             return jsonify({"error": "Invalid or missing API key"}), 401

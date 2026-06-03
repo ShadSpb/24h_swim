@@ -14,11 +14,12 @@ import { Label } from '@/components/ui/label';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { HelpCircle, Send } from 'lucide-react';
+import { getStorageConfig } from '@/lib/api';
 
 export default function FAQ() {
   const { t } = useLanguage();
   const { toast } = useToast();
-  
+
   const [question, setQuestion] = useState('');
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,14 +27,30 @@ export default function FAQ() {
   const handleSubmitQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim()) return;
-    
+
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({ title: t.faq.questionSubmitted });
-    setQuestion('');
-    setEmail('');
-    setIsSubmitting(false);
+    try {
+      const storage = getStorageConfig();
+      const response = await fetch(`${storage.baseUrl}/faq/question`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), question: question.trim() }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok || body?.success === false) {
+        throw new Error(body?.error || `HTTP ${response.status}`);
+      }
+
+      toast({ title: t.faq.questionSubmitted });
+      setQuestion('');
+      setEmail('');
+    } catch (error) {
+      const description = error instanceof Error ? error.message : t.faq.questionError;
+      toast({ title: t.faq.questionError, description, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

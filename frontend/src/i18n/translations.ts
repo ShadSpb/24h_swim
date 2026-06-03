@@ -139,6 +139,7 @@ export const translations = {
       questionPlaceholder: 'Beschreiben Sie Ihre Frage hier...',
       submit: 'Frage absenden',
       questionSubmitted: 'Ihre Frage wurde erfolgreich gesendet!',
+      questionError: 'Ihre Frage konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.',
       
       // Q&A - these are templates to be adjusted manually
       q1: 'Wie funktioniert die Bahnenzählung?',
@@ -750,6 +751,7 @@ export const translations = {
       questionPlaceholder: 'Describe your question here...',
       submit: 'Submit Question',
       questionSubmitted: 'Your question has been submitted successfully!',
+      questionError: 'Your question could not be sent. Please try again later.',
       
       // Q&A - these are templates to be adjusted manually
       q1: 'How does lap counting work?',
