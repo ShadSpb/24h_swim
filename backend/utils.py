@@ -257,20 +257,30 @@ def is_under_12_from_dob(dob) -> bool:
     return years < 12
 
 
-def serialize_swimmer(row: dict) -> dict:
+def serialize_swimmer(row: dict, include_pii: bool = True) -> dict:
+    """Serialize a swimmer.
+
+    With include_pii=False the date of birth and parent contact details are
+    omitted — used for callers (e.g. referees) who need the roster but not the
+    personal data of minors / their parents.
+    """
     dob = row.get("date_of_birth")
-    return {
+    result = {
         "id":            row["id"],
         "name":          row["name"],
         "teamId":        row["team_id"],
         "competitionId": row["competition_id"],
-        "dateOfBirth":   dob,
         "isUnder12":     is_under_12_from_dob(dob),
-        "parentName":    row.get("parent_name"),
-        "parentContact": row.get("parent_contact"),
-        "parentPresent": bool(row.get("parent_present", 0)),
         "createdAt":     row["created_at"],
     }
+    if include_pii:
+        result.update({
+            "dateOfBirth":   dob,
+            "parentName":    row.get("parent_name"),
+            "parentContact": row.get("parent_contact"),
+            "parentPresent": bool(row.get("parent_present", 0)),
+        })
+    return result
 
 
 def serialize_referee(row: dict) -> dict:

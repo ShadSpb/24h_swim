@@ -10,6 +10,7 @@ import logging
 from flask import Blueprint, request
 from database import get_db
 from utils import new_uuid, ok, created, success, error, not_found, serialize_team
+import authz
 
 teams_bp = Blueprint("teams", __name__)
 logger   = logging.getLogger(__name__)
@@ -20,10 +21,14 @@ def list_teams():
     competition_id = request.args.get("competitionId")
     lane_number    = request.args.get("laneNumber", type=int)
 
-    query  = "SELECT * FROM teams WHERE 1=1"
-    params = []
-    if competition_id:
-        query += " AND competition_id = ?"; params.append(competition_id)
+    if not competition_id:
+        return error("competitionId is required")
+    guard = authz.require_member(competition_id)
+    if guard:
+        return guard
+
+    query  = "SELECT * FROM teams WHERE competition_id = ?"
+    params = [competition_id]
     if lane_number is not None:
         query += " AND assigned_lane = ?";  params.append(lane_number)
     query += " ORDER BY assigned_lane, name"
@@ -45,6 +50,10 @@ def create_team():
     competition_id = data["competitionId"]
     color          = data["color"]
     lane           = int(data["assignedLane"])
+
+    guard = authz.require_owner(competition_id)
+    if guard:
+        return guard
 
     with get_db() as db:
         if not db.execute("SELECT id FROM competitions WHERE id=?", (competition_id,)).fetchone():
@@ -76,6 +85,10 @@ def update_team(tid):
     if not existing:
         return not_found("Team")
 
+    guard = authz.require_owner(dict(existing)["competition_id"])
+    if guard:
+        return guard
+
     data      = request.get_json(silent=True) or {}
     ex        = dict(existing)
     new_color = data.get("color",        ex["color"])
@@ -104,8 +117,15 @@ def update_team(tid):
 @teams_bp.route("/teams/<tid>", methods=["DELETE"])
 def delete_team(tid):
     with get_db() as db:
-        if not db.execute("SELECT id FROM teams WHERE id=?", (tid,)).fetchone():
-            return not_found("Team")
+        existing = db.execute("SELECT competition_id FROM teams WHERE id=?", (tid,)).fetchone()
+    if not existing:
+        return not_found("Team")
+
+    guard = authz.require_owner(dict(existing)["competition_id"])
+    if guard:
+        return guard
+
+    with get_db() as db:
         # lap_counts.team_id → teams.id is CASCADE, so deleting team cascades.
         # swim_sessions.team_id → teams.id is CASCADE too.
         # But we must first close any active sessions (good practice).

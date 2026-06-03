@@ -172,9 +172,11 @@ def _swimmer_stats(cid: str, db) -> list[dict]:
         late_bird  = sum(1 for l in laps if _in_window(l["timestamp"], late_h, window_m))
         early_bird = sum(1 for l in laps if _in_window(l["timestamp"], early_h, window_m))
         results.append({
+            # This is a public (unauthenticated) endpoint — expose only what the
+            # live monitor needs. isUnder12 is a derived flag; the raw date of
+            # birth is personal data and must not be returned here.
             "swimmer":           {"id": sid, "name": s["name"], "teamId": s["team_id"],
                                   "teamName": s["team_name"], "teamColor": s["team_color"],
-                                  "dateOfBirth": s.get("date_of_birth"),
                                   "isUnder12": is_under_12_from_dob(s.get("date_of_birth"))},
             "totalLaps":         total,
             "lateBirdLaps":      late_bird,

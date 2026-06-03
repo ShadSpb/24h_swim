@@ -12,6 +12,7 @@ from utils import (
     new_uuid, ok, created, error, not_found, conflict,
     serialize_session,
 )
+import authz
 
 sessions_bp = Blueprint("swim_sessions", __name__)
 logger      = logging.getLogger(__name__)
@@ -23,12 +24,15 @@ def list_sessions():
     team_id        = request.args.get("teamId")
     is_active_str  = request.args.get("isActive")
 
-    query  = "SELECT * FROM swim_sessions WHERE 1=1"
-    params = []
+    if not competition_id:
+        return error("competitionId is required")
+    guard = authz.require_member(competition_id)
+    if guard:
+        return guard
 
-    if competition_id:
-        query += " AND competition_id = ?"
-        params.append(competition_id)
+    query  = "SELECT * FROM swim_sessions WHERE competition_id = ?"
+    params = [competition_id]
+
     if team_id:
         query += " AND team_id = ?"
         params.append(team_id)
@@ -61,6 +65,10 @@ def create_session():
     swimmer_id     = data["swimmerId"]
     team_id        = data["teamId"]
     lane_number    = int(data["laneNumber"])
+
+    guard = authz.require_member(competition_id)
+    if guard:
+        return guard
 
     # Validate competition is active
     with get_db() as db:
@@ -116,8 +124,12 @@ def update_session(sess_id):
     if not existing:
         return not_found("Swim session")
 
-    data = request.get_json(silent=True) or {}
     ex   = dict(existing)
+    guard = authz.require_member(ex["competition_id"])
+    if guard:
+        return guard
+
+    data = request.get_json(silent=True) or {}
 
     end_time  = data.get("endTime",  ex.get("end_time"))
     lap_count = data.get("lapCount", ex["lap_count"])

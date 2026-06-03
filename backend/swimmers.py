@@ -15,6 +15,7 @@ from utils import (
     new_uuid, ok, created, success, error, not_found,
     serialize_swimmer, is_under_12_from_dob,
 )
+import authz
 
 swimmers_bp = Blueprint("swimmers", __name__)
 logger      = logging.getLogger(__name__)
@@ -53,17 +54,25 @@ def list_swimmers():
     competition_id = request.args.get("competitionId")
     team_id        = request.args.get("teamId")
 
-    query  = "SELECT * FROM swimmers WHERE 1=1"
-    params = []
-    if competition_id:
-        query += " AND competition_id = ?"; params.append(competition_id)
+    # Swimmer rows contain personal data (DOB, parent contact) and must never
+    # be dumped wholesale. Require a competition scope and membership; referees
+    # get the roster without the personal fields.
+    if not competition_id:
+        return error("competitionId is required")
+    guard = authz.require_member(competition_id)
+    if guard:
+        return guard
+    include_pii = authz.is_owner(competition_id)
+
+    query  = "SELECT * FROM swimmers WHERE competition_id = ?"
+    params = [competition_id]
     if team_id:
         query += " AND team_id = ?";        params.append(team_id)
     query += " ORDER BY name"
 
     with get_db() as db:
         rows = db.execute(query, params).fetchall()
-    return ok([serialize_swimmer(dict(r)) for r in rows])
+    return ok([serialize_swimmer(dict(r), include_pii=include_pii) for r in rows])
 
 
 @swimmers_bp.route("/swimmers", methods=["POST"])
@@ -74,6 +83,10 @@ def create_swimmer():
     missing  = [f for f in required if not data.get(f)]
     if missing:
         return error(f"Missing required fields: {', '.join(missing)}")
+
+    guard = authz.require_owner(data["competitionId"])
+    if guard:
+        return guard
 
     try:
         dob = _normalize_dob(data.get("dateOfBirth"))
@@ -121,6 +134,10 @@ def update_swimmer(sid):
     if not existing:
         return not_found("Swimmer")
 
+    guard = authz.require_owner(dict(existing)["competition_id"])
+    if guard:
+        return guard
+
     data = request.get_json(silent=True) or {}
     ex   = dict(existing)
 
@@ -155,8 +172,15 @@ def update_swimmer(sid):
 @swimmers_bp.route("/swimmers/<sid>", methods=["DELETE"])
 def delete_swimmer(sid):
     with get_db() as db:
-        if not db.execute("SELECT id FROM swimmers WHERE id=?", (sid,)).fetchone():
-            return not_found("Swimmer")
+        existing = db.execute("SELECT competition_id FROM swimmers WHERE id=?", (sid,)).fetchone()
+    if not existing:
+        return not_found("Swimmer")
+
+    guard = authz.require_owner(dict(existing)["competition_id"])
+    if guard:
+        return guard
+
+    with get_db() as db:
         # End any active sessions for this swimmer before cascade-deleting
         db.execute(
             "UPDATE swim_sessions SET is_active=0, end_time=datetime('now') WHERE swimmer_id=? AND is_active=1",

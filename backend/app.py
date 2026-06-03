@@ -26,6 +26,7 @@ from swim_sessions import sessions_bp
 from lap_counts import lap_counts_bp
 from stats import stats_bp
 from feedback import feedback_bp
+import authz
 
 logging.basicConfig(
     level=logging.INFO,
@@ -88,6 +89,22 @@ def create_app() -> Flask:
             return None
         if API_KEY and request.headers.get("X-API-Key", "") != API_KEY:
             return jsonify({"error": "Invalid or missing API key"}), 401
+
+    # ── Authentication / authorization ─────────────────────────────────────────
+    # Order matters: resolve identity first, then throttle abuse-prone POSTs,
+    # then block anonymous access to everything outside the public allowlist.
+    # Fine-grained ownership checks live inside the individual handlers.
+    @app.before_request
+    def _load_identity():
+        return authz.load_identity()
+
+    @app.before_request
+    def _rate_limit():
+        return authz.rate_limit_guard()
+
+    @app.before_request
+    def _require_login():
+        return authz.require_login_gate()
 
     # ── Error handlers ─────────────────────────────────────────────────────────
     @app.errorhandler(404)

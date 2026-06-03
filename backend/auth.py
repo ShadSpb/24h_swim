@@ -10,7 +10,7 @@ GET  /auth/users
 """
 
 import logging
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from database import get_db
 from utils import (
     new_uuid, is_valid_email,
@@ -18,6 +18,7 @@ from utils import (
     generate_human_password, hash_password, verify_password,
 )
 import email_service
+import authz
 
 auth_bp = Blueprint("auth", __name__)
 logger  = logging.getLogger(__name__)
@@ -53,11 +54,14 @@ def login():
             db.execute("UPDATE users SET password = ? WHERE id = ?", (hash_password(password), user["id"]))
             db.commit()
 
+    session_token = authz.create_session(user["id"], user["role"])
+
     logger.info("User %s logged in", email)
     return jsonify({
-        "success": True,
-        "user":    serialize_user(user),
-        "role":    user["role"],
+        "success":      True,
+        "user":         serialize_user(user),
+        "role":         user["role"],
+        "sessionToken": session_token,
     }), 200
 
 
@@ -99,6 +103,8 @@ def register():
     with get_db() as db:
         user = dict(db.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone())
 
+    session_token = authz.create_session(user["id"], user["role"])
+
     logger.info("New organizer registered: %s", email)
 
     # Best-effort welcome email. Registration must never fail because of
@@ -115,27 +121,35 @@ def register():
         except Exception:
             logger.exception("Welcome email failed for %s", user["email"])
 
-    return jsonify({"success": True, "user": serialize_user(user)}), 201
+    return jsonify({"success": True, "user": serialize_user(user), "sessionToken": session_token}), 201
 
 
 @auth_bp.route("/auth/logout", methods=["POST"])
 def logout():
-    """Logout is stateless on the backend (JWT-less). Just returns OK."""
+    """Revoke the caller's current session token."""
+    authz.delete_session(getattr(g, "token", None))
     return jsonify({"success": True}), 200
 
 
 @auth_bp.route("/auth/users", methods=["GET"])
 def list_users():
     """
-    Return list of all users (used by frontend forgot-password flow to check
-    if a given email exists before sending reset link).
-    In production this should be protected; here we return minimal info only.
+    Return the authenticated caller's own user record only.
+
+    This used to return every user (emails included) with no auth, which
+    leaked the full account list. Email-existence checks for the public
+    forgot-password flow are handled server-side by /auth/forgot-password,
+    so no caller needs the full list.
     """
+    user = authz.current_user()
+    if not user:
+        return jsonify({"error": "Authentication required"}), 401
     with get_db() as db:
-        rows = db.execute(
-            "SELECT id, email, name, role, created_at FROM users WHERE disabled = 0"
-        ).fetchall()
-    return jsonify([serialize_user(dict(r)) for r in rows]), 200
+        row = db.execute(
+            "SELECT id, email, name, role, created_at, force_password_change FROM users WHERE id = ? AND disabled = 0",
+            (user["id"],),
+        ).fetchone()
+    return jsonify([serialize_user(dict(row))] if row else []), 200
 
 
 @auth_bp.route("/auth/reset-password", methods=["POST"])
@@ -150,6 +164,15 @@ def reset_password():
     if not user_id:
         return error("userId is required")
 
+    # This endpoint used to let anyone reset any account by id. Restrict it to
+    # the authenticated user resetting their own account; cross-account resets
+    # for organizers go through the public /auth/forgot-password email flow.
+    caller = authz.current_user()
+    if not caller:
+        return jsonify({"success": False, "error": "Authentication required"}), 401
+    if caller["id"] != user_id:
+        return jsonify({"success": False, "error": "Forbidden"}), 403
+
     new_pw = generate_human_password()
     new_pw_hash = hash_password(new_pw)
 
@@ -162,6 +185,7 @@ def reset_password():
         if result.rowcount == 0:
             return not_found("User")
 
+    authz.delete_sessions_for_user(user_id)
     logger.info("Password reset for user %s", user_id)
     # Return the new plaintext password so the frontend can show/email it
     return jsonify({"success": True, "newPassword": new_pw}), 200
@@ -224,6 +248,7 @@ def forgot_password():
         )
         db.commit()
 
+    authz.delete_sessions_for_user(user["id"])
     logger.info("Password reset email delivered to %s", user["email"])
     return generic_ok
 
