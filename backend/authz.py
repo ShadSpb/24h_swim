@@ -122,7 +122,10 @@ _PUBLIC_GET_RE = [
 def is_public_request() -> bool:
     if request.method == "OPTIONS":
         return True
-    if request.method == "GET":
+    # HEAD is a bodyless GET — used by the container healthcheck
+    # (`wget --spider /health`) and by caches. Treat it like GET against the
+    # public allowlist so the healthcheck isn't gated to a 401.
+    if request.method in ("GET", "HEAD"):
         return any(rx.match(request.path) for rx in _PUBLIC_GET_RE)
     if request.method == "POST":
         return request.path in _PUBLIC_POST
