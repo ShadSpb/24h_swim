@@ -13,8 +13,9 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Competition, Team, Swimmer, Referee, User } from '@/types';
 import { dataApi, getSessionToken, getStorageConfig, isRemoteMode } from '@/lib/api';
-import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText, Download, ScrollText } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText, Download, ScrollText, Upload } from 'lucide-react';
 import { CompetitionControls } from '@/components/competition/CompetitionControls';
+import { SwimmerImportDialog } from '@/components/competition/SwimmerImportDialog';
 import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/utils/password';
 import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
 
@@ -34,6 +35,7 @@ export default function OrganizerDashboard() {
   const [showCompetitionDialog, setShowCompetitionDialog] = useState(false);
   const [showTeamDialog, setShowTeamDialog] = useState(false);
   const [showSwimmerDialog, setShowSwimmerDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [showRefereeDialog, setShowRefereeDialog] = useState(false);
   
   const [editingCompetition, setEditingCompetition] = useState<Competition | null>(null);
@@ -810,6 +812,16 @@ export default function OrganizerDashboard() {
                       <CardTitle className="text-lg">{od.swimmers}</CardTitle>
                       <CardDescription>{swimmers.length} {od.swimmersRegistered}</CardDescription>
                     </div>
+                    <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowImportDialog(true)}
+                      disabled={teams.length === 0 || selectedCompetition.status === 'completed'}
+                    >
+                      <Upload className="h-4 w-4 mr-1" />
+                      {od.importSwimmers}
+                    </Button>
                     <Dialog open={showSwimmerDialog} onOpenChange={setShowSwimmerDialog}>
                       <DialogTrigger asChild>
                         <Button size="sm" disabled={teams.length === 0 || selectedCompetition.status === 'completed'}>
@@ -857,6 +869,14 @@ export default function OrganizerDashboard() {
                         </form>
                       </DialogContent>
                     </Dialog>
+                    </div>
+                    <SwimmerImportDialog
+                      open={showImportDialog}
+                      onOpenChange={setShowImportDialog}
+                      competitionId={selectedCompetition.id}
+                      teams={teams}
+                      onImported={() => { void loadCompetitionData(selectedCompetition); }}
+                    />
                   </CardHeader>
                   <CardContent>
                     {swimmers.length === 0 ? (
