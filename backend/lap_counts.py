@@ -30,8 +30,21 @@ def list_lap_counts():
     team_id        = request.args.get("teamId")
     swimmer_id     = request.args.get("swimmerId")
 
+    # Allow scoping by swimmer or team without an explicit competitionId — the
+    # referee double-count check queries by swimmerId only. Derive the
+    # competition from the filter so membership is still enforced (and a
+    # cross-competition swimmer/team id can't leak another event's laps).
     if not competition_id:
-        return error("competitionId is required")
+        with get_db() as db:
+            if swimmer_id:
+                row = db.execute("SELECT competition_id FROM swimmers WHERE id = ?", (swimmer_id,)).fetchone()
+                competition_id = dict(row)["competition_id"] if row else None
+            elif team_id:
+                row = db.execute("SELECT competition_id FROM teams WHERE id = ?", (team_id,)).fetchone()
+                competition_id = dict(row)["competition_id"] if row else None
+
+    if not competition_id:
+        return error("competitionId, teamId or swimmerId is required")
     guard = authz.require_member(competition_id)
     if guard:
         return guard
