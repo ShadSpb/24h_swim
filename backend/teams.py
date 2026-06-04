@@ -21,11 +21,11 @@ def list_teams():
     competition_id = request.args.get("competitionId")
     lane_number    = request.args.get("laneNumber", type=int)
 
+    # Public (live monitor) read, but always scoped to one competition so the
+    # whole table can't be dumped. Team data (name/colour/lane) is what the
+    # public scoreboard shows; writes remain owner-only.
     if not competition_id:
         return error("competitionId is required")
-    guard = authz.require_member(competition_id)
-    if guard:
-        return guard
 
     query  = "SELECT * FROM teams WHERE competition_id = ?"
     params = [competition_id]

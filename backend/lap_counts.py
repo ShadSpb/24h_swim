@@ -43,11 +43,11 @@ def list_lap_counts():
                 row = db.execute("SELECT competition_id FROM teams WHERE id = ?", (team_id,)).fetchone()
                 competition_id = dict(row)["competition_id"] if row else None
 
+    # Public (live monitor) read, always scoped to one competition so the whole
+    # table can't be dumped. Lap events (timestamps + ids) are scoreboard data;
+    # recording laps (POST) still requires membership.
     if not competition_id:
         return error("competitionId, teamId or swimmerId is required")
-    guard = authz.require_member(competition_id)
-    if guard:
-        return guard
 
     query  = "SELECT * FROM lap_counts WHERE competition_id = ?"
     params = [competition_id]

@@ -115,6 +115,12 @@ _PUBLIC_GET_RE = [
         r"^/competitions$",
         r"^/competitions/[^/]+$",
         r"^/competitions/[^/]+/(stats|team-stats|swimmer-stats)$",
+        # The public live monitor aggregates standings client-side from these
+        # reads. The handlers still require a competition scope (no whole-table
+        # dump) and strip swimmer PII (DOB / parent contact) for non-owners.
+        r"^/teams$",
+        r"^/swimmers$",
+        r"^/lap-counts$",
     )
 ]
 
