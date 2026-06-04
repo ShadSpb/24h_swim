@@ -55,13 +55,11 @@ def list_swimmers():
     team_id        = request.args.get("teamId")
 
     # Swimmer rows contain personal data (DOB, parent contact) and must never
-    # be dumped wholesale. Require a competition scope and membership; referees
-    # get the roster without the personal fields.
+    # be dumped wholesale. Always require a competition scope. Personal fields
+    # are returned ONLY to the owning organizer; the public live monitor and
+    # referees get names + team only (no DOB / parent contact).
     if not competition_id:
         return error("competitionId is required")
-    guard = authz.require_member(competition_id)
-    if guard:
-        return guard
     include_pii = authz.is_owner(competition_id)
 
     query  = "SELECT * FROM swimmers WHERE competition_id = ?"
