@@ -39,6 +39,12 @@ function fmt(tpl: string, vars: Record<string, string | number>): string {
   return tpl.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? String(vars[k]) : `{${k}}`));
 }
 
+// Cap a value so a stray huge cell (e.g. a wrong, comma-separated file where
+// the whole line becomes one "name") can't blow out error messages.
+function clip(s: string, n = 48): string {
+  return s.length > n ? `${s.slice(0, n).trimEnd()}…` : s;
+}
+
 // Whole years between dob and today.
 function ageInYears(isoDob: string): number {
   const born = new Date(isoDob);
@@ -77,6 +83,7 @@ export function SwimmerImportDialog({
   const [fileName, setFileName] = useState<string | null>(null);
   const [rows, setRows] = useState<ParsedRow[]>([]);
   const [importing, setImporting] = useState(false);
+  const [wrongDelimiter, setWrongDelimiter] = useState(false);
 
   // Reset when the dialog is closed.
   useEffect(() => {
@@ -84,6 +91,7 @@ export function SwimmerImportDialog({
       setFileName(null);
       setRows([]);
       setImporting(false);
+      setWrongDelimiter(false);
     }
   }, [open]);
 
@@ -122,13 +130,13 @@ export function SwimmerImportDialog({
       if (!name) {
         error = fmt(od.importErrNoName, { line: lineNo });
       } else if (!teamName) {
-        error = fmt(od.importErrEmptyTeam, { name });
+        error = fmt(od.importErrEmptyTeam, { name: clip(name) });
       } else if (!team) {
-        error = fmt(od.importErrTeamNotFound, { name, team: teamName });
+        error = fmt(od.importErrTeamNotFound, { name: clip(name), team: clip(teamName) });
       } else if (!dobValid) {
-        error = fmt(od.importErrInvalidDate, { name });
+        error = fmt(od.importErrInvalidDate, { name: clip(name) });
       } else if (isUnder12 && (!parentName || !parentContact)) {
-        error = fmt(od.importErrNoParent, { name });
+        error = fmt(od.importErrNoParent, { name: clip(name) });
       }
 
       result.push({
@@ -144,7 +152,14 @@ export function SwimmerImportDialog({
     if (!file) return;
     setFileName(file.name);
     const reader = new FileReader();
-    reader.onload = () => setRows(parseCsv(String(reader.result ?? '')));
+    reader.onload = () => {
+      const text = String(reader.result ?? '');
+      const parsed = parseCsv(text);
+      setRows(parsed);
+      // Heuristic: a file with no ';' but with ',' is almost certainly the
+      // wrong format (e.g. an exported full-log CSV).
+      setWrongDelimiter(parsed.length > 0 && !text.includes(';') && text.includes(','));
+    };
     reader.readAsText(file);
   };
 
@@ -189,7 +204,7 @@ export function SwimmerImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{od.importDialogTitle}</DialogTitle>
           <DialogDescription>{od.importDialogDesc}</DialogDescription>
@@ -226,6 +241,13 @@ export function SwimmerImportDialog({
             </Alert>
           )}
 
+          {wrongDelimiter && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{od.importWrongDelimiter}</AlertDescription>
+            </Alert>
+          )}
+
           {rows.length > 0 && (
             <>
               <div>
@@ -248,22 +270,30 @@ export function SwimmerImportDialog({
                   </TableHeader>
                   <TableBody>
                     {rows.map((row) => (
-                      <TableRow key={row.line} className={row.error ? 'bg-destructive/5' : undefined}>
+                      <TableRow key={row.line} className={`align-top ${row.error ? 'bg-destructive/5' : ''}`}>
                         <TableCell className="text-muted-foreground">{row.line}</TableCell>
-                        <TableCell className="font-medium">{row.name || '—'}</TableCell>
-                        <TableCell>{row.teamName || '—'}</TableCell>
-                        <TableCell>{row.dobRaw || '—'}</TableCell>
-                        <TableCell>{row.parentName || '—'}</TableCell>
-                        <TableCell>{row.parentContact || '—'}</TableCell>
+                        <TableCell className="font-medium">
+                          <div className="max-w-[160px] truncate" title={row.name}>{row.name || '—'}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-[110px] truncate" title={row.teamName}>{row.teamName || '—'}</div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">{row.dobRaw || '—'}</TableCell>
+                        <TableCell>
+                          <div className="max-w-[110px] truncate" title={row.parentName}>{row.parentName || '—'}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="max-w-[130px] truncate" title={row.parentContact}>{row.parentContact || '—'}</div>
+                        </TableCell>
                         <TableCell>
                           {row.error ? (
-                            <span className="text-destructive text-xs flex items-start gap-1">
+                            <div className="max-w-[240px] text-destructive text-xs flex items-start gap-1">
                               <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                              {row.error}
-                            </span>
+                              <span className="break-words">{row.error}</span>
+                            </div>
                           ) : (
                             <span className="text-green-600 text-xs flex items-center gap-1">
-                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
                               {od.importStatusOk}
                             </span>
                           )}
