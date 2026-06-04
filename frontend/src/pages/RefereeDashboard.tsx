@@ -16,7 +16,7 @@ import {
   canCountLap,
   LapCount
 } from '@/lib/api';
-import { useConnectionStatus } from '@/hooks/useConnectionStatus';
+import { useConnectionStatus, isNetworkError } from '@/hooks/useConnectionStatus';
 import { ConnectionIndicator } from '@/components/competition/ConnectionIndicator';
 import { Waves, AlertCircle, UserCheck, UserX, RefreshCw, Repeat } from 'lucide-react';
 
@@ -140,7 +140,8 @@ export default function RefereeDashboard() {
       setActiveSessions(sessions.filter(s => s.isActive));
       markSynced();
     } catch (error) {
-      markSyncError();
+      if (isNetworkError(error)) markSyncError();
+      else markSynced();
       const errorMessage = error instanceof Error ? error.message : 'Failed to load competition data';
       toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
@@ -159,7 +160,8 @@ export default function RefereeDashboard() {
       }
       markSynced();
     } catch (error) {
-      markSyncError();
+      if (isNetworkError(error)) markSyncError();
+      else markSynced();
       const errorMessage = error instanceof Error ? error.message : 'Failed to refresh competition';
       toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
     }
@@ -335,7 +337,10 @@ export default function RefereeDashboard() {
       await dataApi.addLapCount(lapCount);
       markSynced();
     } catch (error) {
-      markSyncError();
+      // A server rejection (e.g. 429 double-count) means we ARE connected —
+      // only a real network failure should mark the indicator offline.
+      if (isNetworkError(error)) markSyncError();
+      else markSynced();
       const errorMessage = error instanceof Error ? error.message : 'Failed to count lap';
       toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
       return;

@@ -1,5 +1,18 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+/**
+ * Whether an error represents a genuine connectivity failure (no response from
+ * the server) rather than a server-side rejection.
+ *
+ * A server that answers — even with an HTTP error like 429 "double count
+ * detected", 422, or 4xx — is reachable, so it must NOT flip the connection
+ * indicator to "offline". Our RemoteApiError carries a numeric `status` only
+ * when the server responded; a network failure leaves it undefined.
+ */
+export function isNetworkError(error: unknown): boolean {
+  return typeof (error as { status?: unknown } | null | undefined)?.status !== 'number';
+}
+
 export interface ConnectionStatus {
   /** Best estimate of whether the server is currently reachable. */
   online: boolean;
@@ -66,8 +79,12 @@ export function useConnectionStatus(
       try {
         await probeRef.current();
         if (!cancelled) markSynced();
-      } catch {
-        if (!cancelled) markSyncError();
+      } catch (error) {
+        // A server response (any HTTP status) still proves reachability.
+        if (!cancelled) {
+          if (isNetworkError(error)) markSyncError();
+          else markSynced();
+        }
       }
     };
 
