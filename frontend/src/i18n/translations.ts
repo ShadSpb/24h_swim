@@ -265,7 +265,11 @@ export const translations = {
       autoStart: 'Automatischer Start',
       autoFinish: 'Automatisches Ende',
       manualControl: 'Manuelle Steuerung',
-      
+      elapsedTime: 'Vergangene Zeit',
+      timeRemaining: 'Verbleibende Zeit',
+      mustFinishBy: 'Zu beenden bis',
+      overdue: 'Überfällig',
+
       // Force stop confirmation
       forceStopTitle: 'Wettbewerb abbrechen?',
       forceStopWarning: 'Diese Aktion kann nicht rückgängig gemacht werden. Alle aktiven Schwimmer werden beendet.',
@@ -879,7 +883,11 @@ export const translations = {
       autoStart: 'Auto Start',
       autoFinish: 'Auto Finish',
       manualControl: 'Manual Control',
-      
+      elapsedTime: 'Elapsed Time',
+      timeRemaining: 'Time Remaining',
+      mustFinishBy: 'Must finish by',
+      overdue: 'Overdue',
+
       // Force stop confirmation
       forceStopTitle: 'Force Stop Competition?',
       forceStopWarning: 'This action cannot be undone. All active swimmers will be ended.',

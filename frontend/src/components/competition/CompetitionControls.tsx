@@ -15,6 +15,18 @@ interface CompetitionControlsProps {
   onUpdate: (competition: Competition) => void;
 }
 
+// A 24h swim runs for 24 hours of wall-clock time from the actual start —
+// the same fixed window the live monitor counts down against.
+const COMPETITION_DURATION_MS = 24 * 60 * 60 * 1000;
+
+function formatDuration(ms: number): string {
+  const total = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 export function CompetitionControls({ competition, onUpdate }: CompetitionControlsProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
@@ -22,6 +34,17 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
   const [hasTeams, setHasTeams] = useState(false);
   const [hasSwimmers, setHasSwimmers] = useState(false);
   const [hasReferees, setHasReferees] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Tick once a second while the competition is running so the elapsed /
+  // remaining clocks update live. When paused or finished the clock freezes
+  // (matching the live monitor), but the absolute deadline below stays exact.
+  useEffect(() => {
+    if (competition.status !== 'active' || !competition.actualStartTime) return;
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [competition.status, competition.actualStartTime]);
 
   useEffect(() => {
     let cancelled = false;
@@ -332,14 +355,43 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
         </div>
 
         {/* Status info */}
-        {competition.actualStartTime && (
-          <div className="text-sm text-muted-foreground pt-4 border-t">
-            <p>Started: {new Date(competition.actualStartTime).toLocaleString()}</p>
-            {competition.actualEndTime && (
-              <p>Ended: {new Date(competition.actualEndTime).toLocaleString()}</p>
-            )}
-          </div>
-        )}
+        {competition.actualStartTime && (() => {
+          const startMs = new Date(competition.actualStartTime).getTime();
+          const endMs = startMs + COMPETITION_DURATION_MS;
+          const remainingMs = endMs - now;
+          const overdue = remainingMs <= 0;
+          return (
+            <div className="pt-4 border-t space-y-3">
+              {/* Live elapsed / remaining clocks (hidden once finished) */}
+              {!competition.actualEndTime && (
+                <div className="flex flex-wrap gap-x-8 gap-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t.competition.elapsedTime}</p>
+                    <p className="font-semibold text-2xl font-mono">{formatDuration(now - startMs)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t.competition.timeRemaining}</p>
+                    <p className={`font-semibold text-2xl font-mono ${overdue ? 'text-destructive' : ''}`}>
+                      {overdue ? t.competition.overdue : formatDuration(remainingMs)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">{t.competition.mustFinishBy}</p>
+                    <p className={`font-semibold text-lg ${overdue ? 'text-destructive' : ''}`}>
+                      {new Date(endMs).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="text-sm text-muted-foreground">
+                <p>Started: {new Date(competition.actualStartTime).toLocaleString()}</p>
+                {competition.actualEndTime && (
+                  <p>Ended: {new Date(competition.actualEndTime).toLocaleString()}</p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </CardContent>
     </Card>
   );
