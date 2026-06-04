@@ -322,15 +322,18 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
             </Button>
           )}
 
-          {/* CSV summary is available at any time, before and after finish. */}
-          <Button
-            onClick={() => { void handleDownloadCsv(); }}
-            variant="outline"
-            className="gap-2"
-          >
-            <Download className="h-4 w-4" />
-            {t.organizerDashboard.downloadCsv}
-          </Button>
+          {/* CSV summary is available once started — during the run and after finish.
+              It is hidden while upcoming, when there is no lap data to export yet. */}
+          {competition.status !== 'upcoming' && (
+            <Button
+              onClick={() => { void handleDownloadCsv(); }}
+              variant="outline"
+              className="gap-2"
+            >
+              <Download className="h-4 w-4" />
+              {t.organizerDashboard.downloadCsv}
+            </Button>
+          )}
 
           {/* Protocol PDF and the full lap log are only meaningful once finished. */}
           {competition.status === 'completed' && (
