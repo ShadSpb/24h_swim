@@ -70,15 +70,20 @@ def create_session():
     if guard:
         return guard
 
-    # Validate competition is active
+    # Validate competition allows check-in.
+    # Swimmers may check in before the competition starts ("upcoming"), so the
+    # first swimmer per team is ready in the water the moment counting opens.
+    # Lap counting itself stays blocked until "active" (see lap_counts.py).
+    CHECK_IN_STATUSES = ("upcoming", "active")
     with get_db() as db:
         comp = db.execute(
             "SELECT status FROM competitions WHERE id = ?", (competition_id,)
         ).fetchone()
     if not comp:
         return error("Competition not found", 404)
-    if dict(comp)["status"] != "active":
-        return error(f"Competition is not active (status: {dict(comp)['status']})")
+    status = dict(comp)["status"]
+    if status not in CHECK_IN_STATUSES:
+        return error(f"Check-in is not allowed (status: {status})")
 
     # RULES: one swimmer per team in water at a time
     with get_db() as db:

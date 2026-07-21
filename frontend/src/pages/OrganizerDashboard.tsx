@@ -496,6 +496,9 @@ export default function OrganizerDashboard() {
     { name: 'Orange', value: '#f97316' },
     { name: 'Pink', value: '#ec4899' },
     { name: 'Cyan', value: '#06b6d4' },
+    { name: 'Black', value: '#000000' },
+    { name: 'White', value: '#ffffff' },
+    { name: 'Silver', value: '#c0c0c0' },
   ];
 
   return (
@@ -758,8 +761,8 @@ export default function OrganizerDashboard() {
                                     defaultChecked={editingTeam?.color === color.value || (!editingTeam && color.value === '#3b82f6')}
                                     className="sr-only peer"
                                   />
-                                  <div 
-                                    className="w-8 h-8 rounded-full border-2 border-transparent peer-checked:border-foreground transition-all"
+                                  <div
+                                    className="w-8 h-8 rounded-full border-2 border-muted-foreground/30 peer-checked:border-foreground transition-all"
                                     style={{ backgroundColor: color.value }}
                                     title={color.name}
                                   />
