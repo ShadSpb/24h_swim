@@ -247,6 +247,14 @@ check("unknown referee → 404",          s(client.post("/referees/nope/reset-pa
 
 # ═════════════════════════════════════════════════════════════════════════════
 section("Swim Sessions: Start")
+# Swimmers may check in before the competition officially starts (upcoming),
+# so the first swimmer per team is ready the moment counting opens.
+client.put(f"/competitions/{CID}", json={"status":"upcoming"})
+r = client.post("/swim-sessions", json={"competitionId":CID,"swimmerId":SW1ID,"teamId":T1ID,"laneNumber":1})
+check("check-in while upcoming → 201",   s(r) == 201)
+client.put(f"/swim-sessions/{j(r)['data']['id']}", json={"isActive":False,"endTime":"2026-07-01T09:00:00Z"})
+client.put(f"/competitions/{CID}", json={"status":"active"})
+
 r = client.post("/swim-sessions", json={"competitionId":CID,"swimmerId":SW1ID,"teamId":T1ID,"laneNumber":1})
 check("start T1 session → 201",         s(r) == 201)
 check("isActive = True",                j(r)["data"]["isActive"] == True)
