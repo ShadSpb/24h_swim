@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Competition, Team, Swimmer } from '@/types';
 import { dataApi, getTeamStats, getSwimmerStats, isRemoteMode } from '@/lib/api';
 import { loadSiteConfig } from '@/lib/config/siteConfig';
+import { SWATCH_BORDER } from '@/lib/utils/color';
 import { Trophy, Clock, Zap, Moon, Sun, Waves, RefreshCw, ArrowUpDown, Users, User, MapPin, Calendar, Ruler, AlertCircle, QrCode } from 'lucide-react';
 
 type SortDirection = 'asc' | 'desc';
@@ -619,8 +620,8 @@ export default function Monitor() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-3">
-                                  <div 
-                                    className="w-6 h-6 rounded-full"
+                                  <div
+                                    className={`w-6 h-6 rounded-full ${SWATCH_BORDER}`}
                                     style={{ backgroundColor: stat.team.color }}
                                   />
                                   <div>
@@ -714,8 +715,8 @@ export default function Monitor() {
                               <TableCell>
                                 {stat.team && (
                                   <div className="flex items-center gap-2">
-                                    <div 
-                                      className="w-4 h-4 rounded-full"
+                                    <div
+                                      className={`w-4 h-4 rounded-full ${SWATCH_BORDER}`}
                                       style={{ backgroundColor: stat.team.color }}
                                     />
                                     <span className="text-sm">{stat.team.name}</span>

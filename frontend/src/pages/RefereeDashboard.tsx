@@ -17,6 +17,7 @@ import {
   LapCount
 } from '@/lib/api';
 import { useConnectionStatus, isNetworkError } from '@/hooks/useConnectionStatus';
+import { getContrastText, SWATCH_BORDER } from '@/lib/utils/color';
 import { ConnectionIndicator } from '@/components/competition/ConnectionIndicator';
 import { Waves, AlertCircle, UserCheck, UserX, RefreshCw, Repeat } from 'lucide-react';
 
@@ -556,7 +557,7 @@ export default function RefereeDashboard() {
                                     disabled={hasActive}
                                   >
                                     <div className="flex items-center gap-2">
-                                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }} />
+                                      <div className={`w-3 h-3 rounded-full ${SWATCH_BORDER}`} style={{ backgroundColor: team.color }} />
                                       {team.name}
                                       {hasActive && <Badge variant="secondary" className="ml-1">{t.refereeDashboard.swimming}</Badge>}
                                     </div>
@@ -675,9 +676,9 @@ export default function RefereeDashboard() {
                               <CardHeader className="pb-2">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-3">
-                                    <div 
-                                      className="w-8 h-8 rounded-full flex items-center justify-center text-primary-foreground font-bold"
-                                      style={{ backgroundColor: getTeamColor(session.teamId) }}
+                                    <div
+                                      className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${SWATCH_BORDER}`}
+                                      style={{ backgroundColor: getTeamColor(session.teamId), color: getContrastText(getTeamColor(session.teamId)) }}
                                     >
                                       {getTeamName(session.teamId).charAt(0)}
                                     </div>
@@ -717,10 +718,10 @@ export default function RefereeDashboard() {
                                   </div>
                                   <Button
                                     size="lg"
-                                    className="h-20 w-20 rounded-full text-xl"
+                                    className={`h-20 w-20 rounded-full text-xl ${SWATCH_BORDER}`}
                                     disabled={selectedCompetition.status !== 'active'}
                                     onClick={() => { void countLap(session); }}
-                                    style={{ backgroundColor: getTeamColor(session.teamId) }}
+                                    style={{ backgroundColor: getTeamColor(session.teamId), color: getContrastText(getTeamColor(session.teamId)) }}
                                   >
                                     +1
                                   </Button>

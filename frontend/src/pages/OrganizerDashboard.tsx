@@ -18,6 +18,7 @@ import { CompetitionControls } from '@/components/competition/CompetitionControl
 import { SwimmerImportDialog } from '@/components/competition/SwimmerImportDialog';
 import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/utils/password';
 import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
+import { SWATCH_BORDER } from '@/lib/utils/color';
 
 export default function OrganizerDashboard() {
   const { isAuthenticated, user } = useAuth();
@@ -785,7 +786,7 @@ export default function OrganizerDashboard() {
                         {teams.map(team => (
                           <div key={team.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-3">
-                              <div className="w-6 h-6 rounded-full" style={{ backgroundColor: team.color }} />
+                              <div className={`w-6 h-6 rounded-full ${SWATCH_BORDER}`} style={{ backgroundColor: team.color }} />
                               <div>
                                 <p className="font-medium">{team.name}</p>
                                 <p className="text-sm text-muted-foreground">{od.lane} {team.assignedLane}</p>
