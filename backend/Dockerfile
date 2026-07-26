@@ -37,12 +37,4 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 VOLUME ["/data"]
 EXPOSE 5000
 
-# Serve with gunicorn (multi-worker) instead of the single-process Werkzeug dev
-# server so many concurrent Live View clients don't queue behind one process.
-# Binds the same host:port so nginx keeps proxying unchanged. `exec` makes
-# gunicorn PID 1 so it receives SIGTERM for graceful shutdown. `--preload`
-# builds the app (and runs DB init/migrations) once in the master before
-# forking, avoiding a startup migration race across workers.
-# NOTE: the in-process response cache and rate limiter (app.py/authz.py) are
-# now per-worker; that's fine (each still caches; rate limits scale by workers).
-CMD ["sh", "-c", "exec gunicorn --preload --factory 'app:create_app' -b ${SWIMTRACK_HOST:-0.0.0.0}:${SWIMTRACK_PORT:-5000} --workers ${GUNICORN_WORKERS:-3} --threads ${GUNICORN_THREADS:-8} --worker-class gthread --timeout ${GUNICORN_TIMEOUT:-60} --access-logfile - --error-logfile -"]
+CMD ["python3", "app.py"]
