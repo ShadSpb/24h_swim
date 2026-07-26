@@ -91,5 +91,27 @@ jobs:
       - name: Build backend image
         run: docker build -t swimtrack-backend-ci ./backend
 
+      # Actually RUN the built image and hit /health. CI otherwise only builds
+      # the image (which passes even if the container crashes on startup, e.g. a
+      # missing module in the COPY list or a broken CMD). This gate turns such
+      # runtime failures into a red CI so they block the deploy instead of
+      # taking production down.
+      - name: Smoke test backend image boots
+        run: |
+          docker run -d --name swim-ci -e SWIMTRACK_DB=/tmp/ci.db -p 5000:5000 swimtrack-backend-ci
+          ok=""
+          for i in $(seq 1 20); do
+            if curl -fsS http://localhost:5000/health >/dev/null 2>&1; then ok=1; break; fi
+            sleep 2
+          done
+          echo "----- container logs -----"
+          docker logs swim-ci || true
+          docker rm -f swim-ci >/dev/null 2>&1 || true
+          if [ "$ok" != "1" ]; then
+            echo "Backend image failed to serve /health — blocking deploy."
+            exit 1
+          fi
+          echo "Backend image booted and served /health."
+
       - name: Build frontend image
         run: docker build -t swimtrack-frontend-ci ./frontend
