@@ -92,6 +92,23 @@ def get_competition(cid):
     return ok(serialize_competition(dict(row)))
 
 
+@competitions_bp.route("/competitions/<cid>/results-pdf", methods=["GET"])
+def get_competition_results_pdf(cid):
+    """Return the stored results PDF (base64 data URI) for a completed
+    competition. Kept out of the competition list/detail payloads because it is
+    large; the owner fetches it here on demand."""
+    guard = authz.require_owner(cid)
+    if guard:
+        return guard
+    with get_db() as db:
+        row = db.execute(
+            "SELECT results_pdf FROM competitions WHERE id = ? OR slug = ?", (cid, cid),
+        ).fetchone()
+    if not row:
+        return not_found("Competition")
+    return ok({"resultsPdf": dict(row)["results_pdf"]})
+
+
 @competitions_bp.route("/competitions", methods=["POST"])
 def create_competition():
     data = request.get_json(silent=True) or {}

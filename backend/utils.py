@@ -204,8 +204,11 @@ def is_valid_uuid(value: str) -> bool:
 
 # ── Serialisers: snake_case DB rows → camelCase JSON ──────────────────────────
 
-def serialize_competition(row: dict) -> dict:
-    return {
+def serialize_competition(row: dict, include_results_pdf: bool = False) -> dict:
+    # The results PDF is a large base64 blob (hundreds of KB). It is NOT included
+    # by default so list/detail reads (which the live monitor polls) stay small;
+    # fetch it explicitly via GET /competitions/<id>/results-pdf when needed.
+    result = {
         "id":                 row["id"],
         "slug":               row.get("slug") or row["id"],
         "name":               row["name"],
@@ -226,9 +229,11 @@ def serialize_competition(row: dict) -> dict:
         "birdWindowMinutes":  int(row.get("bird_window_minutes", 60) or 60),
         "actualStartTime":    row.get("actual_start_time"),
         "actualEndTime":      row.get("actual_end_time"),
-        "resultsPdf":         row.get("results_pdf"),
         "createdAt":          row["created_at"],
     }
+    if include_results_pdf:
+        result["resultsPdf"] = row.get("results_pdf")
+    return result
 
 
 def serialize_team(row: dict) -> dict:

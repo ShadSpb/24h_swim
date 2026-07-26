@@ -115,7 +115,7 @@ def create_app() -> Flask:
     # identical polls into one computation per competition, which is what keeps
     # CPU/memory flat under many viewers. Authenticated callers (organizers /
     # referees) are never served from cache, so counting stays real-time.
-    _CACHE_TTL = float(os.environ.get("SWIMTRACK_CACHE_TTL", "3"))
+    _CACHE_TTL = float(os.environ.get("SWIMTRACK_CACHE_TTL", "8"))
     _CACHEABLE_GET_RE = [re.compile(r) for r in (
         r"^/competitions$",
         r"^/competitions/[^/]+$",

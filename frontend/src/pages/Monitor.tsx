@@ -80,7 +80,7 @@ export default function Monitor() {
   
   // Auto-refresh state
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(5000);
+  const [refreshInterval, setRefreshInterval] = useState(10000);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Sorting state
