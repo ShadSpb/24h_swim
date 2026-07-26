@@ -171,6 +171,20 @@ def _swimmer_stats(cid: str, db) -> list[dict]:
         total      = len(laps)
         late_bird  = sum(1 for l in laps if _in_window(l["timestamp"], late_h, window_m))
         early_bird = sum(1 for l in laps if _in_window(l["timestamp"], early_h, window_m))
+
+        # laps/hour + fastest lap so the live monitor's swimmer table can render
+        # the same columns without downloading the raw lap log per client.
+        timestamps    = [t for t in (_parse_utc(l["timestamp"]) for l in laps) if t]
+        laps_per_hour = fastest_lap_s = None
+        if len(timestamps) >= 2:
+            timestamps.sort()
+            span_s = (timestamps[-1] - timestamps[0]).total_seconds()
+            if span_s > 0:
+                laps_per_hour = round((total - 1) / (span_s / 3600), 2)
+                intervals     = [(timestamps[i + 1] - timestamps[i]).total_seconds()
+                                 for i in range(len(timestamps) - 1)]
+                fastest_lap_s = round(min(intervals), 1) if intervals else None
+
         results.append({
             # This is a public (unauthenticated) endpoint — expose only what the
             # live monitor needs. isUnder12 is a derived flag; the raw date of
@@ -181,6 +195,8 @@ def _swimmer_stats(cid: str, db) -> list[dict]:
             "totalLaps":         total,
             "lateBirdLaps":      late_bird,
             "earlyBirdLaps":     early_bird,
+            "lapsPerHour":       laps_per_hour or 0.0,
+            "fastestLapSec":     fastest_lap_s,
             "totalWaterSeconds": int(sw_water_s.get(sid, 0)),
         })
     results.sort(key=lambda x: x["totalLaps"], reverse=True)

@@ -188,6 +188,15 @@ async function _birdConfig(competitionId: string): Promise<{ early: number; late
 }
 
 export async function getTeamStats(competitionId: string) {
+  // Remote mode: use the backend's pre-aggregated, cached standings instead of
+  // downloading the full lap_counts table and aggregating in the browser.
+  if (isRemoteMode()) {
+    const config = getStorageConfig();
+    if (config?.type === 'remote') {
+      return new RemoteDataApi(config).getTeamStatsAggregated(competitionId);
+    }
+  }
+
   const [teams, lapCounts, bird] = await Promise.all([
     dataApi.getTeamsByCompetition(competitionId),
     dataApi.getLapCountsByCompetition(competitionId),
@@ -227,6 +236,14 @@ export async function getTeamStats(competitionId: string) {
 }
 
 export async function getSwimmerStats(competitionId: string) {
+  // Remote mode: use the backend's pre-aggregated, cached standings.
+  if (isRemoteMode()) {
+    const config = getStorageConfig();
+    if (config?.type === 'remote') {
+      return new RemoteDataApi(config).getSwimmerStatsAggregated(competitionId);
+    }
+  }
+
   const [swimmers, teams, lapCounts, bird] = await Promise.all([
     dataApi.getSwimmersByCompetition(competitionId),
     dataApi.getTeamsByCompetition(competitionId),

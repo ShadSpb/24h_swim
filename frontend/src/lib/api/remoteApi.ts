@@ -255,6 +255,51 @@ export class RemoteDataApi implements DataApi {
     });
   }
 
+  // Pre-aggregated standings from the backend. The live monitor uses these
+  // instead of downloading the full lap_counts table (megabytes, twice per
+  // refresh) and aggregating client-side. Shapes are mapped to match the
+  // client-side aggregators in index.ts (fastestLap in ms; team object).
+  async getTeamStatsAggregated(competitionId: string): Promise<any[]> {
+    const raw = await makeRequest<any[]>(
+      this.config, `/competitions/${competitionId}/team-stats`, 'GET'
+    );
+    return (raw ?? []).map(s => ({
+      team: {
+        id: s.team?.id,
+        name: s.team?.name,
+        color: s.team?.color,
+        assignedLane: s.team?.assignedLane,
+      },
+      totalLaps: s.totalLaps ?? 0,
+      lapsPerHour: s.lapsPerHour ?? 0,
+      fastestLap: s.fastestLapSec != null ? s.fastestLapSec * 1000 : null,
+      lateBirdLaps: s.lateBirdLaps ?? 0,
+      earlyBirdLaps: s.earlyBirdLaps ?? 0,
+    }));
+  }
+
+  async getSwimmerStatsAggregated(competitionId: string): Promise<any[]> {
+    const raw = await makeRequest<any[]>(
+      this.config, `/competitions/${competitionId}/swimmer-stats`, 'GET'
+    );
+    return (raw ?? []).map(s => ({
+      swimmer: {
+        id: s.swimmer?.id,
+        name: s.swimmer?.name,
+        teamId: s.swimmer?.teamId,
+        isUnder12: s.swimmer?.isUnder12,
+      },
+      team: s.swimmer?.teamId
+        ? { id: s.swimmer.teamId, name: s.swimmer.teamName, color: s.swimmer.teamColor }
+        : undefined,
+      totalLaps: s.totalLaps ?? 0,
+      lapsPerHour: s.lapsPerHour ?? 0,
+      fastestLap: s.fastestLapSec != null ? s.fastestLapSec * 1000 : null,
+      lateBirdLaps: s.lateBirdLaps ?? 0,
+      earlyBirdLaps: s.earlyBirdLaps ?? 0,
+    }));
+  }
+
   async getLapCountsByTeam(teamId: string): Promise<LapCount[]> {
     return makeRequest<LapCount[]>(this.config, this.config.endpoints.lapCounts, 'GET', {
       queryParams: { teamId }
