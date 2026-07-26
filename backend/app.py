@@ -14,9 +14,11 @@ Endpoints:
 """
 
 import os
+import re
 import logging
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from database import init_db
+import response_cache
 from auth import auth_bp
 from competitions import competitions_bp
 from teams import teams_bp
@@ -105,6 +107,61 @@ def create_app() -> Flask:
     @app.before_request
     def _require_login():
         return authz.require_login_gate()
+
+    # ── Short-TTL response cache for anonymous public reads ─────────────────────
+    # The live monitor polls these read endpoints every few seconds from every
+    # open spectator screen; the payloads grow all day as lap_counts fills up.
+    # Caching the ANONYMOUS response for a couple of seconds collapses all those
+    # identical polls into one computation per competition, which is what keeps
+    # CPU/memory flat under many viewers. Authenticated callers (organizers /
+    # referees) are never served from cache, so counting stays real-time.
+    _CACHE_TTL = float(os.environ.get("SWIMTRACK_CACHE_TTL", "3"))
+    _CACHEABLE_GET_RE = [re.compile(r) for r in (
+        r"^/competitions$",
+        r"^/competitions/[^/]+$",
+        r"^/competitions/[^/]+/(stats|team-stats|swimmer-stats)$",
+        r"^/teams$",
+        r"^/swimmers$",
+        r"^/lap-counts$",
+    )]
+
+    def _is_cacheable_request() -> bool:
+        if _CACHE_TTL <= 0 or request.method != "GET":
+            return False
+        if getattr(g, "user", None) is not None:  # anonymous spectators only
+            return False
+        return any(rx.match(request.path) for rx in _CACHEABLE_GET_RE)
+
+    def _cache_key() -> str:
+        return request.full_path  # path + '?' + query string
+
+    @app.before_request
+    def _serve_from_cache():
+        if not _is_cacheable_request():
+            return None
+        hit = response_cache.get(_cache_key())
+        if hit is None:
+            return None
+        status, content_type, body = hit
+        resp = app.response_class(body, status=status, content_type=content_type)
+        resp.headers["X-Cache"] = "HIT"
+        return resp
+
+    @app.after_request
+    def _store_in_cache(response):
+        if (_is_cacheable_request()
+                and response.status_code == 200
+                and "X-Cache" not in response.headers
+                and not response.direct_passthrough):
+            try:
+                response_cache.set(
+                    _cache_key(), response.status_code,
+                    response.content_type, response.get_data(), _CACHE_TTL,
+                )
+                response.headers["X-Cache"] = "MISS"
+            except Exception:  # never let caching break a response
+                logger.exception("response cache store failed")
+        return response
 
     # ── Error handlers ─────────────────────────────────────────────────────────
     @app.errorhandler(404)
