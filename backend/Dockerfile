@@ -19,6 +19,7 @@ COPY database.py ./
 COPY email_service.py ./
 COPY lap_counts.py ./
 COPY referees.py ./
+COPY response_cache.py ./
 COPY stats.py ./
 COPY swim_sessions.py ./
 COPY swimmers.py ./
