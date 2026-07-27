@@ -92,7 +92,7 @@ def init_db() -> None:
         schema = f.read()
     with get_db() as conn:
         conn.executescript(schema)
-        _migrate_lap_counts_referee_fk(conn)
+        _migrate_lap_counts_fks(conn)
         _migrate_swimmers_date_of_birth(conn)
         _migrate_competitions_bird_windows(conn)
         _migrate_competitions_slug(conn)
@@ -129,30 +129,32 @@ def _migrate_legacy_user_passwords(conn: sqlite3.Connection) -> None:
         logger.info("Migrated %d legacy user passwords to secure hashes", len(updates))
 
 
-def _migrate_lap_counts_referee_fk(conn: sqlite3.Connection) -> None:
+def _migrate_lap_counts_fks(conn: sqlite3.Connection) -> None:
     """
-    Ensure lap_counts.referee_id is nullable and uses ON DELETE SET NULL.
-    This preserves lap history when a referee account is deleted.
+    Ensure lap_counts.referee_id AND lap_counts.swimmer_id are nullable and use
+    ON DELETE SET NULL. This preserves lap history (and therefore TEAM totals,
+    which are counted by team_id) when a referee account or a swimmer is deleted
+    during a competition.
     """
     cols = conn.execute("PRAGMA table_info(lap_counts)").fetchall()
     if not cols:
         return
 
-    ref_col = next((c for c in cols if c["name"] == "referee_id"), None)
-    ref_notnull = int(ref_col["notnull"]) if ref_col else 0
+    def _notnull(name: str) -> int:
+        col = next((c for c in cols if c["name"] == name), None)
+        return int(col["notnull"]) if col else 0
 
     fk_rows = conn.execute("PRAGMA foreign_key_list(lap_counts)").fetchall()
-    ref_on_delete = None
-    for fk in fk_rows:
-        if fk["from"] == "referee_id":
-            ref_on_delete = fk["on_delete"]
-            break
+    on_delete = {fk["from"]: fk["on_delete"] for fk in fk_rows}
+
+    ref_ok = _notnull("referee_id") == 0 and on_delete.get("referee_id") == "SET NULL"
+    sw_ok = _notnull("swimmer_id") == 0 and on_delete.get("swimmer_id") == "SET NULL"
 
     # Already migrated
-    if ref_notnull == 0 and ref_on_delete == "SET NULL":
+    if ref_ok and sw_ok:
         return
 
-    logger.info("Applying migration: lap_counts.referee_id -> NULLABLE + ON DELETE SET NULL")
+    logger.info("Applying migration: lap_counts.referee_id + swimmer_id -> NULLABLE + ON DELETE SET NULL")
     conn.executescript(
         """
         CREATE TABLE lap_counts_new (
@@ -160,7 +162,7 @@ def _migrate_lap_counts_referee_fk(conn: sqlite3.Connection) -> None:
             competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
             lane_number    INTEGER NOT NULL,
             team_id        TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-            swimmer_id     TEXT NOT NULL REFERENCES swimmers(id) ON DELETE CASCADE,
+            swimmer_id     TEXT REFERENCES swimmers(id) ON DELETE SET NULL,
             referee_id     TEXT REFERENCES referees(id) ON DELETE SET NULL,
             lap_number     INTEGER NOT NULL,
             timestamp      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

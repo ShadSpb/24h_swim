@@ -184,7 +184,9 @@ def delete_swimmer(sid):
             "UPDATE swim_sessions SET is_active=0, end_time=datetime('now') WHERE swimmer_id=? AND is_active=1",
             (sid,)
         )
-        # lap_counts.swimmer_id → swimmers.id is CASCADE, so this is safe
+        # lap_counts.swimmer_id → swimmers.id is ON DELETE SET NULL, so the
+        # swimmer's laps are kept (with their team_id) and the team total is
+        # preserved; only this swimmer's individual attribution is cleared.
         db.execute("DELETE FROM swimmers WHERE id=?", (sid,))
         db.commit()
 

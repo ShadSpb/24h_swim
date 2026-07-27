@@ -98,7 +98,10 @@ CREATE TABLE IF NOT EXISTS lap_counts (
     competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
     lane_number    INTEGER NOT NULL,
     team_id        TEXT NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-    swimmer_id     TEXT NOT NULL REFERENCES swimmers(id) ON DELETE CASCADE,
+    -- SET NULL (not CASCADE): deleting a swimmer must NOT remove their laps, so
+    -- the team total (counted by team_id) is preserved. Only per-swimmer
+    -- attribution is cleared.
+    swimmer_id     TEXT REFERENCES swimmers(id) ON DELETE SET NULL,
     referee_id     TEXT REFERENCES referees(id) ON DELETE SET NULL,
     lap_number     INTEGER NOT NULL,
     timestamp      TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
