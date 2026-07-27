@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Competition } from '@/types';
 import { dataApi } from '@/lib/api';
-import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
+import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionRawDataCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
 import { Play, Square, Clock, Pause, AlertTriangle, FileText, Download, ScrollText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -194,12 +194,14 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
 
   const handleDownloadCsv = async () => {
     try {
-      const [teams, swimmers, lapCounts] = await Promise.all([
+      const [teams, swimmers, referees, sessions, lapCounts] = await Promise.all([
         dataApi.getTeamsByCompetition(competition.id),
         dataApi.getSwimmersByCompetition(competition.id),
+        dataApi.getRefereesByCompetition(competition.id),
+        dataApi.getSwimSessionsByCompetition(competition.id),
         dataApi.getLapCountsByCompetition(competition.id),
       ]);
-      const csvDataUri = generateCompetitionResultsCSV(competition, teams, swimmers, lapCounts);
+      const csvDataUri = generateCompetitionRawDataCSV(competition, teams, swimmers, referees, sessions, lapCounts);
       downloadDataUri(csvDataUri, `${safeName}_raw_data.csv`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate CSV';

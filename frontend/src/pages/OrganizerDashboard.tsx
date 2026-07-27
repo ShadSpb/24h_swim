@@ -21,7 +21,7 @@ import {
 import { CompetitionControls } from '@/components/competition/CompetitionControls';
 import { SwimmerImportDialog } from '@/components/competition/SwimmerImportDialog';
 import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/utils/password';
-import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionResultsCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
+import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionRawDataCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
 import { SWATCH_BORDER } from '@/lib/utils/color';
 
 export default function OrganizerDashboard() {
@@ -456,8 +456,18 @@ export default function OrganizerDashboard() {
 
   const handleDownloadCSV = async (comp: Competition) => {
     try {
-      const { compTeams, compSwimmers, compLapCounts } = await fetchCompetitionRawData(comp);
-      const csvDataUri = generateCompetitionResultsCSV(comp, compTeams, compSwimmers, compLapCounts);
+      // Full raw dump: every entity, not a summary. Pull the extra entities
+      // (referees, swim sessions) the summary export didn't include.
+      const [compTeams, compSwimmers, compReferees, compSessions, compLapCounts] = await Promise.all([
+        dataApi.getTeamsByCompetition(comp.id),
+        dataApi.getSwimmersByCompetition(comp.id),
+        dataApi.getRefereesByCompetition(comp.id),
+        dataApi.getSwimSessionsByCompetition(comp.id),
+        dataApi.getLapCountsByCompetition(comp.id),
+      ]);
+      const csvDataUri = generateCompetitionRawDataCSV(
+        comp, compTeams, compSwimmers, compReferees, compSessions, compLapCounts,
+      );
       downloadDataUri(csvDataUri, `${comp.name.replace(/\s+/g, '_')}_raw_data.csv`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : od.errorLoadCompetitionData;

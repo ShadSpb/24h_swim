@@ -1,7 +1,7 @@
 // PDF / CSV generators for competition results
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Competition, Team, Swimmer } from '@/types';
+import { Competition, Team, Swimmer, Referee, SwimSession } from '@/types';
 import { LapCount } from '@/lib/api/types';
 
 interface TeamStats {
@@ -306,34 +306,120 @@ function buildCsvDataUri(header: (string | number)[], rows: (string | number)[][
   return `data:text/csv;charset=utf-8,${encodeURIComponent(bom + lines)}`;
 }
 
+interface CsvSection {
+  title: string;
+  header: (string | number)[];
+  rows: (string | number)[][];
+}
+
+/** Build one CSV file from several titled sections (one table per entity). */
+function buildMultiSectionCsvDataUri(sections: CsvSection[]): string {
+  const body = sections
+    .map(s => {
+      const table = [s.header, ...s.rows].map(cols => cols.map(escapeCsv).join(',')).join('\r\n');
+      return `# ${s.title}\r\n${table}`;
+    })
+    .join('\r\n\r\n');
+  const bom = String.fromCharCode(0xfeff);
+  return `data:text/csv;charset=utf-8,${encodeURIComponent(bom + body)}`;
+}
+
 /**
- * Raw, per-swimmer CSV export for the organizer. One row per swimmer with all
- * underlying fields so the data can be re-analysed in a spreadsheet.
+ * FULL raw data export for a competition: every underlying record, not a
+ * summary. One titled section per entity (competition metadata, teams,
+ * swimmers, referees, swim sessions, and the raw lap_counts event log). Ids are
+ * always included so the export is a faithful, re-importable copy of the data;
+ * swimmers/teams with zero laps are still present via their own sections.
  */
-export function generateCompetitionResultsCSV(
+export function generateCompetitionRawDataCSV(
   competition: Competition,
   teams: Team[],
   swimmers: Swimmer[],
-  lapCounts: LapCount[]
+  referees: Referee[],
+  sessions: SwimSession[],
+  lapCounts: LapCount[],
 ): string {
-  const swimmerStats = computeSwimmerStats(competition, teams, swimmers, lapCounts);
+  const teamName = new Map(teams.map(t => [t.id, t.name]));
+  const swimmerName = new Map(swimmers.map(s => [s.id, s.name]));
 
-  const header = [
-    'Name', 'Date of Birth', 'Team', 'Lane', 'Laps', 'Distance (m)', '% of Team', 'Under 12',
-  ];
+  const competitionSection: CsvSection = {
+    title: 'COMPETITION',
+    header: [
+      'id', 'slug', 'name', 'description', 'date', 'startTime', 'endTime', 'location',
+      'numberOfLanes', 'laneLength (m)', 'doubleCountTimeout (s)', 'status', 'autoStart',
+      'autoFinish', 'earlyBirdHour', 'lateBirdHour', 'birdWindowMinutes', 'actualStartTime',
+      'actualEndTime', 'organizerId', 'createdAt',
+    ],
+    rows: [[
+      competition.id, competition.slug, competition.name, competition.description ?? '',
+      competition.date, competition.startTime, competition.endTime ?? '', competition.location,
+      competition.numberOfLanes, competition.laneLength, competition.doubleCountTimeout,
+      competition.status, String(competition.autoStart), String(competition.autoFinish),
+      competition.earlyBirdHour, competition.lateBirdHour, competition.birdWindowMinutes,
+      competition.actualStartTime ?? '', competition.actualEndTime ?? '', competition.organizerId,
+      competition.createdAt ?? '',
+    ]],
+  };
 
-  const rows = swimmerStats.map(stats => [
-    stats.swimmer.name,
-    stats.swimmer.dateOfBirth || '',
-    stats.team?.name || '',
-    stats.team?.assignedLane ?? '',
-    stats.totalLaps,
-    stats.totalMeters,
-    stats.teamSharePct !== null ? stats.teamSharePct.toFixed(2) : '',
-    stats.swimmer.isUnder12 ? 'yes' : 'no',
+  const teamsSection: CsvSection = {
+    title: 'TEAMS',
+    header: ['id', 'name', 'color', 'assignedLane', 'logo', 'createdAt'],
+    rows: teams.map(t => [t.id, t.name, t.color, t.assignedLane, t.logo ?? '', t.createdAt ?? '']),
+  };
+
+  const swimmersSection: CsvSection = {
+    title: 'SWIMMERS',
+    header: [
+      'id', 'name', 'teamId', 'teamName', 'dateOfBirth', 'isUnder12',
+      'parentName', 'parentContact', 'parentPresent', 'createdAt',
+    ],
+    rows: swimmers.map(s => [
+      s.id, s.name, s.teamId, teamName.get(s.teamId) ?? '', s.dateOfBirth ?? '',
+      s.isUnder12 ? 'yes' : 'no', s.parentName ?? '', s.parentContact ?? '',
+      s.parentPresent ? 'yes' : 'no', s.createdAt ?? '',
+    ]),
+  };
+
+  const refereesSection: CsvSection = {
+    title: 'REFEREES',
+    header: ['id', 'userId', 'name', 'email', 'createdAt'],
+    rows: referees.map(r => [r.id, r.userId, r.name, r.email ?? '', r.createdAt ?? '']),
+  };
+
+  const sessionsSection: CsvSection = {
+    title: 'SWIM SESSIONS',
+    header: [
+      'id', 'swimmerId', 'swimmerName', 'teamId', 'teamName', 'laneNumber',
+      'startTime', 'endTime', 'lapCount', 'isActive',
+    ],
+    rows: [...sessions]
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      .map(s => [
+        s.id, s.swimmerId, swimmerName.get(s.swimmerId) ?? '', s.teamId, teamName.get(s.teamId) ?? '',
+        s.laneNumber, s.startTime, s.endTime ?? '', s.lapCount, String(s.isActive),
+      ]),
+  };
+
+  const orderedLaps = [...lapCounts].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  );
+  const lapsSection: CsvSection = {
+    title: 'LAP COUNTS (raw event log)',
+    header: [
+      '#', 'timestamp', 'laneNumber', 'teamId', 'teamName',
+      'swimmerId', 'swimmerName', 'refereeId', 'lapNumber', 'lapId',
+    ],
+    rows: orderedLaps.map((lap, i) => [
+      i + 1, lap.timestamp, lap.laneNumber, lap.teamId, teamName.get(lap.teamId) ?? '',
+      lap.swimmerId ?? '', swimmerName.get(lap.swimmerId) ?? '', lap.refereeId ?? '',
+      lap.lapNumber, lap.id,
+    ]),
+  };
+
+  return buildMultiSectionCsvDataUri([
+    competitionSection, teamsSection, swimmersSection,
+    refereesSection, sessionsSection, lapsSection,
   ]);
-
-  return buildCsvDataUri(header, rows);
 }
 
 /**
