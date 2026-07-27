@@ -45,10 +45,9 @@ interface SwimmerStatWithRank {
 }
 
 const REFRESH_INTERVALS = [
-  { label: '5 seconds', value: 5000 },
-  { label: '10 seconds', value: 10000 },
   { label: '30 seconds', value: 30000 },
   { label: '1 minute', value: 60000 },
+  { label: '5 minutes', value: 300000 },
 ];
 
 /** Format a bird-bonus window as "HH:MM-HH:MM" (24h, local-to-competition). */
@@ -80,7 +79,7 @@ export default function Monitor() {
   
   // Auto-refresh state
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState(10000);
+  const [refreshInterval, setRefreshInterval] = useState(60000); // 1 minute (default)
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Sorting state

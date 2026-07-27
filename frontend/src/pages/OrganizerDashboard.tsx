@@ -24,6 +24,20 @@ import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/ut
 import { downloadDataUri, generateCompetitionFullLogCSV, generateCompetitionRawDataCSV, generateCompetitionResultsPDF } from '@/lib/utils/pdfGenerator';
 import { SWATCH_BORDER } from '@/lib/utils/color';
 
+const TEAM_COLORS = [
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Green', value: '#22c55e' },
+  { name: 'Yellow', value: '#eab308' },
+  { name: 'Purple', value: '#a855f7' },
+  { name: 'Orange', value: '#f97316' },
+  { name: 'Pink', value: '#ec4899' },
+  { name: 'Cyan', value: '#06b6d4' },
+  { name: 'Black', value: '#000000' },
+  { name: 'White', value: '#ffffff' },
+  { name: 'Silver', value: '#c0c0c0' },
+];
+
 export default function OrganizerDashboard() {
   const { isAuthenticated, user } = useAuth();
   const { t } = useLanguage();
@@ -46,6 +60,10 @@ export default function OrganizerDashboard() {
   const [editingCompetition, setEditingCompetition] = useState<Competition | null>(null);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
   const [anonymizingComp, setAnonymizingComp] = useState<Competition | null>(null);
+  // Team dialog: controlled lane + colour so already-used colours on the chosen
+  // lane can be greyed out (two teams on one lane can't share a colour).
+  const [teamFormLane, setTeamFormLane] = useState('1');
+  const [teamFormColor, setTeamFormColor] = useState(TEAM_COLORS[0].value);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'organizer') {
@@ -151,16 +169,39 @@ export default function OrganizerDashboard() {
     }
   };
 
+  // Colours already used by OTHER teams on a given lane (can't be reused there).
+  const takenColorsForLane = (laneStr: string): Set<string> =>
+    new Set(
+      teams
+        .filter(tm => tm.assignedLane === parseInt(laneStr) && tm.id !== editingTeam?.id)
+        .map(tm => tm.color),
+    );
+
+  // Initialise the team dialog's lane + colour when it opens: default to lane 1
+  // (or the edited team's lane) and the first colour not already used there.
+  useEffect(() => {
+    if (!showTeamDialog) return;
+    const lane = editingTeam?.assignedLane?.toString() || '1';
+    setTeamFormLane(lane);
+    const taken = takenColorsForLane(lane);
+    const initialColor = editingTeam?.color
+      || TEAM_COLORS.find(c => !taken.has(c.value))?.value
+      || TEAM_COLORS[0].value;
+    setTeamFormColor(initialColor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTeamDialog, editingTeam]);
+
   const handleCreateTeam = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedCompetition) return;
-    
+
     try {
       const formData = new FormData(e.currentTarget);
-      const lane = parseInt(formData.get('lane') as string);
-      const color = formData.get('color') as string;
+      const lane = parseInt(teamFormLane);
+      const color = teamFormColor;
 
-      // Check for duplicate color on same lane
+      // Check for duplicate color on same lane (UI greys these out, but keep the
+      // guard as a safety net).
       const existingTeams = await dataApi.getTeamsByLane(selectedCompetition.id, lane);
       if (existingTeams.some(t => t.color === color && t.id !== editingTeam?.id)) {
         toast({ title: od.colorConflict, description: od.colorConflictDesc, variant: 'destructive' });
@@ -519,20 +560,6 @@ export default function OrganizerDashboard() {
     }
   };
 
-  const TEAM_COLORS = [
-    { name: 'Red', value: '#ef4444' },
-    { name: 'Blue', value: '#3b82f6' },
-    { name: 'Green', value: '#22c55e' },
-    { name: 'Yellow', value: '#eab308' },
-    { name: 'Purple', value: '#a855f7' },
-    { name: 'Orange', value: '#f97316' },
-    { name: 'Pink', value: '#ec4899' },
-    { name: 'Cyan', value: '#06b6d4' },
-    { name: 'Black', value: '#000000' },
-    { name: 'White', value: '#ffffff' },
-    { name: 'Silver', value: '#c0c0c0' },
-  ];
-
   return (
     <MainLayout showFooter={false}>
       <div className="container py-8">
@@ -776,7 +803,19 @@ export default function OrganizerDashboard() {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="lane">{od.assignedLane}</Label>
-                            <Select name="lane" defaultValue={editingTeam?.assignedLane?.toString() || '1'}>
+                            <Select
+                              value={teamFormLane}
+                              onValueChange={(v) => {
+                                setTeamFormLane(v);
+                                // If the current colour is already used on the newly
+                                // chosen lane, move to the first available one.
+                                const taken = takenColorsForLane(v);
+                                if (taken.has(teamFormColor)) {
+                                  const next = TEAM_COLORS.find(c => !taken.has(c.value));
+                                  if (next) setTeamFormColor(next.value);
+                                }
+                              }}
+                            >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
@@ -790,22 +829,34 @@ export default function OrganizerDashboard() {
                           <div className="space-y-2">
                             <Label>{od.teamColor}</Label>
                             <div className="flex flex-wrap gap-2">
-                              {TEAM_COLORS.map(color => (
-                                <label key={color.value} className="cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name="color"
-                                    value={color.value}
-                                    defaultChecked={editingTeam?.color === color.value || (!editingTeam && color.value === '#3b82f6')}
-                                    className="sr-only peer"
-                                  />
-                                  <div
-                                    className="w-8 h-8 rounded-full border-2 border-muted-foreground/30 peer-checked:border-foreground transition-all"
-                                    style={{ backgroundColor: color.value }}
-                                    title={color.name}
-                                  />
-                                </label>
-                              ))}
+                              {(() => {
+                                const takenColors = takenColorsForLane(teamFormLane);
+                                return TEAM_COLORS.map(color => {
+                                  const taken = takenColors.has(color.value);
+                                  const selected = teamFormColor === color.value;
+                                  return (
+                                    <label
+                                      key={color.value}
+                                      className={taken ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'}
+                                      title={taken ? `${color.name} — ${od.colorTaken}` : color.name}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name="color"
+                                        value={color.value}
+                                        checked={selected}
+                                        disabled={taken}
+                                        onChange={() => setTeamFormColor(color.value)}
+                                        className="sr-only"
+                                      />
+                                      <div
+                                        className={`w-8 h-8 rounded-full border-2 transition-all ${selected ? 'border-foreground' : 'border-muted-foreground/30'}`}
+                                        style={{ backgroundColor: color.value }}
+                                      />
+                                    </label>
+                                  );
+                                });
+                              })()}
                             </div>
                           </div>
                           <DialogFooter>
