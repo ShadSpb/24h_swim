@@ -266,6 +266,18 @@ export default function Monitor() {
     return counts;
   }, [swimmerStats]);
 
+  // Active swimmers per team: distinct people who actually swam (recorded at
+  // least one lap), as opposed to everyone registered.
+  const activeSwimmersPerTeam = useMemo(() => {
+    const counts = new Map<string, number>();
+    swimmerStats.forEach(stat => {
+      if ((stat.totalLaps ?? 0) <= 0) return;
+      const teamId = stat.swimmer.teamId ?? stat.team?.id;
+      if (teamId) counts.set(teamId, (counts.get(teamId) ?? 0) + 1);
+    });
+    return counts;
+  }, [swimmerStats]);
+
   // Sorted team stats
   const sortedTeamStats = useMemo(() => {
     const sorted = [...teamStatsWithRank];
@@ -592,6 +604,9 @@ export default function Monitor() {
                           <TableHead className="text-right">
                             {t.monitor.registeredSwimmers}
                           </TableHead>
+                          <TableHead className="text-right">
+                            {t.monitor.activeSwimmers}
+                          </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('laps')}>
                             {t.lap.laps} <SortButton active={teamSortKey === 'laps'} direction={teamSortDir} />
                           </TableHead>
@@ -618,7 +633,7 @@ export default function Monitor() {
                       <TableBody>
                         {sortedTeamStats.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                               {t.monitor.noData}
                             </TableCell>
                           </TableRow>
@@ -645,6 +660,9 @@ export default function Monitor() {
                               </TableCell>
                               <TableCell className="text-right">
                                 {swimmersPerTeam.get(stat.team.id) ?? 0}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {activeSwimmersPerTeam.get(stat.team.id) ?? 0}
                               </TableCell>
                               <TableCell className="text-right">
                                 <span className="font-bold text-lg">{stat.totalLaps}</span>
