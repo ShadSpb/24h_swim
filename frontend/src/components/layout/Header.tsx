@@ -39,6 +39,7 @@ export function Header() {
 
   const navLinks = [
     { to: '/', label: t.common.home },
+    { to: '/monitor', label: t.common.liveMonitor },
     { to: '/faq', label: t.faq.title },
     { to: '/privacy', label: t.common.privacy },
   ];

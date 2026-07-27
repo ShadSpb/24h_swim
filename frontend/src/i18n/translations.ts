@@ -695,7 +695,7 @@ export const translations = {
       password: 'Password',
       dashboard: 'Dashboard',
       settings: 'Settings',
-      liveMonitor: 'Live Monitor',
+      liveMonitor: 'Live View',
       privacy: 'Privacy Policy',
     },
 
