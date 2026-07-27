@@ -100,6 +100,16 @@ def _team_stats(cid: str, db) -> list[dict]:
         r = dict(row)
         active_sessions[r["team_id"]] = r
 
+    # Total swim sessions per team (how many times any of its swimmers entered
+    # the water — including ended ones), not just the currently-active one.
+    team_session_count = {
+        dict(r)["team_id"]: dict(r)["c"]
+        for r in db.execute(
+            "SELECT team_id, COUNT(*) AS c FROM swim_sessions WHERE competition_id=? GROUP BY team_id",
+            (cid,),
+        ).fetchall()
+    }
+
     results = []
     for tid, team in teams.items():
         laps  = team_laps.get(tid, [])
@@ -126,6 +136,7 @@ def _team_stats(cid: str, db) -> list[dict]:
             "earlyBirdLaps":  early_bird,
             "lapsPerHour":    laps_per_hour or 0.0,
             "fastestLapSec":  fastest_lap_s,
+            "sessionCount":   team_session_count.get(tid, 0),
             "activeSwimmer":  {"id": active["swimmer_id"], "name": active["swimmer_name"],
                                "laneNumber": active["lane_number"]} if active else None,
         })
@@ -158,7 +169,9 @@ def _swimmer_stats(cid: str, db) -> list[dict]:
         "SELECT swimmer_id, start_time, end_time FROM swim_sessions WHERE competition_id=?", (cid,)
     ).fetchall()]
     sw_water_s = defaultdict(float)
+    sw_session_count = defaultdict(int)
     for s in sessions:
+        sw_session_count[s["swimmer_id"]] += 1
         if s["start_time"] and s["end_time"]:
             st = _parse_utc(s["start_time"]); en = _parse_utc(s["end_time"])
             if st and en:
@@ -197,6 +210,7 @@ def _swimmer_stats(cid: str, db) -> list[dict]:
             "earlyBirdLaps":     early_bird,
             "lapsPerHour":       laps_per_hour or 0.0,
             "fastestLapSec":     fastest_lap_s,
+            "sessionCount":      sw_session_count.get(sid, 0),
             "totalWaterSeconds": int(sw_water_s.get(sid, 0)),
         })
     results.sort(key=lambda x: x["totalLaps"], reverse=True)

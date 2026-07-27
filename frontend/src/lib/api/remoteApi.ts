@@ -279,6 +279,7 @@ export class RemoteDataApi implements DataApi {
       fastestLap: s.fastestLapSec != null ? s.fastestLapSec * 1000 : null,
       lateBirdLaps: s.lateBirdLaps ?? 0,
       earlyBirdLaps: s.earlyBirdLaps ?? 0,
+      sessionCount: s.sessionCount ?? 0,
     }));
   }
 
@@ -301,6 +302,7 @@ export class RemoteDataApi implements DataApi {
       fastestLap: s.fastestLapSec != null ? s.fastestLapSec * 1000 : null,
       lateBirdLaps: s.lateBirdLaps ?? 0,
       earlyBirdLaps: s.earlyBirdLaps ?? 0,
+      sessionCount: s.sessionCount ?? 0,
     }));
   }
 

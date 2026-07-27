@@ -31,6 +31,7 @@ interface TeamStatWithRank {
   fastestLap: number | null;
   lateBirdLaps: number;
   earlyBirdLaps: number;
+  sessionCount?: number;
   rank: number;
 }
 
@@ -42,6 +43,7 @@ interface SwimmerStatWithRank {
   fastestLap: number | null;
   lateBirdLaps: number;
   earlyBirdLaps: number;
+  sessionCount?: number;
   rank: number;
 }
 
@@ -617,6 +619,9 @@ export default function Monitor() {
                           <TableHead className="text-right">
                             {t.monitor.activeSwimmers}
                           </TableHead>
+                          <TableHead className="text-right">
+                            {t.monitor.sessions}
+                          </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleTeamSort('laps')}>
                             {t.lap.laps} <SortButton active={teamSortKey === 'laps'} direction={teamSortDir} />
                           </TableHead>
@@ -643,7 +648,7 @@ export default function Monitor() {
                       <TableBody>
                         {sortedTeamStats.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                               {t.monitor.noData}
                             </TableCell>
                           </TableRow>
@@ -673,6 +678,9 @@ export default function Monitor() {
                               </TableCell>
                               <TableCell className="text-right">
                                 {activeSwimmersPerTeam.get(stat.team.id) ?? 0}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {stat.sessionCount ?? 0}
                               </TableCell>
                               <TableCell className="text-right">
                                 <span className="font-bold text-lg">{stat.totalLaps}</span>
@@ -724,6 +732,9 @@ export default function Monitor() {
                           <TableHead className="cursor-pointer" onClick={() => handleSwimmerSort('team')}>
                             {t.team.teams} <SortButton active={swimmerSortKey === 'team'} direction={swimmerSortDir} />
                           </TableHead>
+                          <TableHead className="text-right">
+                            {t.monitor.sessions}
+                          </TableHead>
                           <TableHead className="text-right cursor-pointer" onClick={() => handleSwimmerSort('laps')}>
                             {t.lap.laps} <SortButton active={swimmerSortKey === 'laps'} direction={swimmerSortDir} />
                           </TableHead>
@@ -750,7 +761,7 @@ export default function Monitor() {
                       <TableBody>
                         {filteredSwimmerStats.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                            <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                               {swimmerSearch.trim() ? t.monitor.noSwimmerMatch : t.monitor.noData}
                             </TableCell>
                           </TableRow>
@@ -776,6 +787,9 @@ export default function Monitor() {
                                     <span className="text-sm">{stat.team.name}</span>
                                   </div>
                                 )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {stat.sessionCount ?? 0}
                               </TableCell>
                               <TableCell className="text-right">
                                 <span className="font-bold text-lg">{stat.totalLaps}</span>
