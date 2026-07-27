@@ -738,14 +738,17 @@ export default function OrganizerDashboard() {
                 </Card>
 
                 {/* Competition Controls - Start/Stop */}
-                <CompetitionControls 
-                  competition={selectedCompetition} 
+                <CompetitionControls
+                  competition={selectedCompetition}
+                  teamCount={teams.length}
+                  swimmerCount={swimmers.length}
+                  refereeCount={referees.length}
                   onUpdate={(updated) => {
                     setSelectedCompetition(updated);
                     void loadCompetitions();
                     // Reload data in case referees were removed on completion
                     void loadCompetitionData(updated);
-                  }} 
+                  }}
                 />
 
                 {/* Teams */}

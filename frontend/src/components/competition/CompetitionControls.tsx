@@ -12,6 +12,11 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CompetitionControlsProps {
   competition: Competition;
+  /** Live counts from the parent so readiness updates the moment the organizer
+   *  adds teams/swimmers/referees (no reload needed). */
+  teamCount: number;
+  swimmerCount: number;
+  refereeCount: number;
   onUpdate: (competition: Competition) => void;
 }
 
@@ -27,13 +32,18 @@ function formatDuration(ms: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function CompetitionControls({ competition, onUpdate }: CompetitionControlsProps) {
+export function CompetitionControls({
+  competition, teamCount, swimmerCount, refereeCount, onUpdate,
+}: CompetitionControlsProps) {
   const { t } = useLanguage();
   const { toast } = useToast();
 
-  const [hasTeams, setHasTeams] = useState(false);
-  const [hasSwimmers, setHasSwimmers] = useState(false);
-  const [hasReferees, setHasReferees] = useState(false);
+  // Derived from live parent props so the Start button enables as soon as the
+  // required entities exist — previously these were fetched once and went stale
+  // when the organizer added teams/swimmers/referees afterwards.
+  const hasTeams = teamCount > 0;
+  const hasSwimmers = swimmerCount > 0;
+  const hasReferees = refereeCount > 0;
   const [now, setNow] = useState(() => Date.now());
 
   // Tick once a second while the competition is running so the elapsed /
@@ -46,32 +56,6 @@ export function CompetitionControls({ competition, onUpdate }: CompetitionContro
     return () => clearInterval(id);
   }, [competition.status, competition.actualStartTime]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadRequirements = async () => {
-      try {
-        const [teams, swimmers, referees] = await Promise.all([
-          dataApi.getTeamsByCompetition(competition.id),
-          dataApi.getSwimmersByCompetition(competition.id),
-          dataApi.getRefereesByCompetition(competition.id),
-        ]);
-        if (!cancelled) {
-          setHasTeams(teams.length > 0);
-          setHasSwimmers(swimmers.length > 0);
-          setHasReferees(referees.length > 0);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setHasTeams(false);
-          setHasSwimmers(false);
-          setHasReferees(false);
-        }
-      }
-    };
-
-    void loadRequirements();
-    return () => { cancelled = true; };
-  }, [competition.id, competition.status]);
 
   const canStart = hasTeams && hasSwimmers && hasReferees;
 
