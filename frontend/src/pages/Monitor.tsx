@@ -16,7 +16,8 @@ import { Competition, Team, Swimmer } from '@/types';
 import { dataApi, getTeamStats, getSwimmerStats, isRemoteMode } from '@/lib/api';
 import { loadSiteConfig } from '@/lib/config/siteConfig';
 import { SWATCH_BORDER } from '@/lib/utils/color';
-import { Trophy, Clock, Zap, Moon, Sun, Waves, RefreshCw, ArrowUpDown, Users, User, MapPin, Calendar, Ruler, AlertCircle, QrCode } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Trophy, Clock, Zap, Moon, Sun, Waves, RefreshCw, ArrowUpDown, Users, User, MapPin, Calendar, Ruler, AlertCircle, QrCode, Search } from 'lucide-react';
 
 type SortDirection = 'asc' | 'desc';
 type TeamSortKey = 'rank' | 'name' | 'laps' | 'lapsPerHour' | 'fastestLap' | 'lateBird' | 'earlyBird';
@@ -87,6 +88,7 @@ export default function Monitor() {
   const [teamSortDir, setTeamSortDir] = useState<SortDirection>('asc');
   const [swimmerSortKey, setSwimmerSortKey] = useState<SwimmerSortKey>('rank');
   const [swimmerSortDir, setSwimmerSortDir] = useState<SortDirection>('asc');
+  const [swimmerSearch, setSwimmerSearch] = useState('');
 
   // Load site config
   useEffect(() => {
@@ -316,6 +318,14 @@ export default function Monitor() {
     });
     return sorted;
   }, [swimmerStatsWithRank, swimmerSortKey, swimmerSortDir]);
+
+  // Name search so swimmers can find themselves without scrolling. Filtering
+  // after ranking keeps each swimmer's true overall rank in the results.
+  const filteredSwimmerStats = useMemo(() => {
+    const q = swimmerSearch.trim().toLowerCase();
+    if (!q) return sortedSwimmerStats;
+    return sortedSwimmerStats.filter(s => (s.swimmer.name || '').toLowerCase().includes(q));
+  }, [sortedSwimmerStats, swimmerSearch]);
 
   const handleTeamSort = (key: TeamSortKey) => {
     if (teamSortKey === key) {
@@ -692,6 +702,16 @@ export default function Monitor() {
                   </TabsContent>
                   
                   <TabsContent value="swimmer">
+                    <div className="mb-3 relative max-w-sm">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        value={swimmerSearch}
+                        onChange={(e) => setSwimmerSearch(e.target.value)}
+                        placeholder={t.monitor.searchSwimmer}
+                        className="pl-9"
+                        aria-label={t.monitor.searchSwimmer}
+                      />
+                    </div>
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -728,14 +748,14 @@ export default function Monitor() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {sortedSwimmerStats.length === 0 ? (
+                        {filteredSwimmerStats.length === 0 ? (
                           <TableRow>
                             <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                              {t.monitor.noData}
+                              {swimmerSearch.trim() ? t.monitor.noSwimmerMatch : t.monitor.noData}
                             </TableCell>
                           </TableRow>
                         ) : (
-                          sortedSwimmerStats.map((stat) => (
+                          filteredSwimmerStats.map((stat) => (
                             <TableRow key={stat.swimmer.id}>
                               <TableCell>
                                 <span className="flex items-center gap-2">
