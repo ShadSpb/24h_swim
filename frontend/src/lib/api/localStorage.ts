@@ -573,11 +573,14 @@ export class LocalStorageAdminApi implements AdminApi {
   }
 
   async adminLogin(username: string, password: string): Promise<boolean> {
-    // Load admin password hash from config file
+    // The standalone /admin panel has been removed from the production build,
+    // and its password hash is no longer bundled into the frontend (it would
+    // have been readable by every visitor). With no stored hash there is
+    // nothing to authenticate against, so admin login is always denied.
     const siteConfig = await loadSiteConfig();
-    const storedHash = siteConfig.admin.passwordHash;
-    
-    // Hash the provided password and compare
+    const storedHash = siteConfig.admin?.passwordHash;
+    if (!storedHash) return false;
+
     const passwordHash = await hashPassword(password);
     return username === 'admin' && passwordHash === storedHash;
   }

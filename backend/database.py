@@ -75,14 +75,31 @@ def _harden_sidecar_files(path: str) -> None:
                 os.chmod(sidecar, secure_mode)
 
 
+# Path hardening (stat/chmod syscalls) only needs to happen once per process
+# per DB path — not on every connection. get_db() is called several times per
+# request, so re-hardening on each open added avoidable syscall overhead under
+# load. Track which paths we've already secured.
+_hardened_paths: set[str] = set()
+
+
 def get_db() -> sqlite3.Connection:
     """Open a database connection with row_factory for dict-like access."""
     path = _db_path()
-    _ensure_secure_db_path(path)
-    conn = sqlite3.connect(path)
+    if path not in _hardened_paths:
+        _ensure_secure_db_path(path)
+        _hardened_paths.add(path)
+    conn = sqlite3.connect(path, timeout=15)
     conn.row_factory = sqlite3.Row
+    # foreign_keys and busy_timeout are per-connection (not persisted), so they
+    # must be set on every connection. journal_mode = WAL is persisted in the DB
+    # header (set once in init_db), so we don't re-issue it here.
+    #   - busy_timeout: with WAL + multiple gunicorn workers/threads, a writer
+    #     can briefly hold the lock; wait instead of failing with "database is
+    #     locked".
+    #   - synchronous = NORMAL: safe with WAL and markedly faster on writes.
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 5000")
+    conn.execute("PRAGMA synchronous = NORMAL")
     return conn
 
 

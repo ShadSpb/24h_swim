@@ -8,12 +8,17 @@ export interface SiteConfigFile {
   site: {
     domain: string;
   };
-  smtp: {
-    host: string;
-    port: number;
-    user: string;
-    password: string;
-    from: string;
+  // SMTP settings are intentionally NOT bundled into the frontend: this config
+  // is imported at build time and shipped in the public JS bundle, so any
+  // credential here would be readable by every visitor. The backend sends mail
+  // via the Mailgun HTTP API using server-side env vars (see backend/email_service.py).
+  // Kept optional only so legacy config files without the block still type-check.
+  smtp?: {
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    from?: string;
   };
   storage: {
     type: 'local' | 'remote';
@@ -38,7 +43,11 @@ export interface SiteConfigFile {
     competitionResult: boolean;
     faqFeedback: boolean;
   };
-  admin: {
+  // The admin password hash is intentionally NOT bundled into the frontend
+  // (it shipped in the public JS bundle before). The standalone /admin panel
+  // has been removed from the production build. Optional so any legacy config
+  // file that still carries the block continues to type-check.
+  admin?: {
     passwordHash: string;
   };
 }
