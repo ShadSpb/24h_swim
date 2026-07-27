@@ -13,7 +13,11 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Competition, Team, Swimmer, Referee, User } from '@/types';
 import { dataApi, getSessionToken, getStorageConfig, isRemoteMode } from '@/lib/api';
-import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText, Download, ScrollText, Upload } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Trash2, Edit, Eye, UserPlus, Waves, Copy, Key, Clock, FileText, Download, ScrollText, Upload, EyeOff } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { CompetitionControls } from '@/components/competition/CompetitionControls';
 import { SwimmerImportDialog } from '@/components/competition/SwimmerImportDialog';
 import { generateHumanPassword, generateRefereeId, hashPassword } from '@/lib/utils/password';
@@ -41,6 +45,7 @@ export default function OrganizerDashboard() {
   
   const [editingCompetition, setEditingCompetition] = useState<Competition | null>(null);
   const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [anonymizingComp, setAnonymizingComp] = useState<Competition | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'organizer') {
@@ -413,6 +418,22 @@ export default function OrganizerDashboard() {
     }
   };
 
+  const handleAnonymize = async () => {
+    const comp = anonymizingComp;
+    if (!comp) return;
+    try {
+      await dataApi.anonymizeCompetition(comp.id);
+      await loadCompetitions();
+      if (selectedCompetition?.id === comp.id) await loadCompetitionData(comp);
+      toast({ title: od.anonymized, description: od.anonymizedDesc });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : od.errorAnonymize;
+      toast({ title: t.common.error, description: errorMessage, variant: 'destructive' });
+    } finally {
+      setAnonymizingComp(null);
+    }
+  };
+
   const fetchCompetitionRawData = async (comp: Competition) => {
     const [compTeams, compSwimmers, compLapCounts] = await Promise.all([
       dataApi.getTeamsByCompetition(comp.id),
@@ -647,6 +668,9 @@ export default function OrganizerDashboard() {
                           </Button>
                           <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); void handleDownloadFullLog(comp); }} title={od.downloadFullLog}>
                             <ScrollText className="h-3 w-3" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setAnonymizingComp(comp); }} title={od.anonymize}>
+                            <EyeOff className="h-3 w-3" />
                           </Button>
                         </>
                       )}
@@ -1012,6 +1036,21 @@ export default function OrganizerDashboard() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={!!anonymizingComp} onOpenChange={(open) => { if (!open) setAnonymizingComp(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{od.anonymizeTitle}</AlertDialogTitle>
+            <AlertDialogDescription>{od.anonymizeDesc}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.common.cancel}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { void handleAnonymize(); }}>
+              {od.anonymizeConfirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </MainLayout>
   );
 }

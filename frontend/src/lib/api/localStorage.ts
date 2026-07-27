@@ -137,6 +137,22 @@ export class LocalStorageDataApi implements DataApi {
     saveItems(KEYS.competitions, competitions);
   }
 
+  async anonymizeCompetition(id: string): Promise<void> {
+    // Replace swimmer names with neutral labels and drop parent PII; keep DOB
+    // and results. Mirrors the backend behaviour for offline mode.
+    const all = await this.getSwimmers();
+    const forComp = all
+      .filter(s => s.competitionId === id)
+      .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '') || a.id.localeCompare(b.id));
+    const anonById = new Map(forComp.map((s, i) => [s.id, `Swimmer ${i + 1}`]));
+    const updated = all.map(s =>
+      anonById.has(s.id)
+        ? { ...s, name: anonById.get(s.id)!, parentName: undefined, parentContact: undefined }
+        : s,
+    );
+    saveItems(KEYS.swimmers, updated);
+  }
+
   // Teams
   async getTeams(): Promise<Team[]> {
     return getItems<Team>(KEYS.teams);

@@ -140,6 +140,11 @@ export default function FAQ() {
                   <AccordionContent>{t.faq.a11}</AccordionContent>
                 </AccordionItem>
 
+                <AccordionItem value="faq-12">
+                  <AccordionTrigger>{t.faq.q12}</AccordionTrigger>
+                  <AccordionContent>{t.faq.a12}</AccordionContent>
+                </AccordionItem>
+
               </Accordion>
             </CardContent>
           </Card>

@@ -109,6 +109,47 @@ def get_competition_results_pdf(cid):
     return ok({"resultsPdf": dict(row)["results_pdf"]})
 
 
+@competitions_bp.route("/competitions/<cid>/anonymize", methods=["POST"])
+def anonymize_competition(cid):
+    """
+    Irreversibly anonymize participants of a FINISHED competition.
+
+    - Swimmer names are replaced with neutral labels ("Swimmer 1..N") that
+      cannot be reversed to the original names.
+    - Parent name / contact (personal data that could re-identify a swimmer)
+      are cleared.
+    - Date of birth, team names, and all results (lap_counts) are preserved.
+
+    Owner-only. Allowed only once the competition has ended.
+    """
+    guard = authz.require_owner(cid)
+    if guard:
+        return guard
+
+    with get_db() as db:
+        comp = db.execute("SELECT status FROM competitions WHERE id=?", (cid,)).fetchone()
+        if not comp:
+            return not_found("Competition")
+        if dict(comp)["status"] not in ENDED_STATUSES:
+            return error("Anonymization is only allowed for finished competitions")
+
+        # Deterministic order so the labels are stable, but the mapping to the
+        # original names is not recoverable from the anonymized data.
+        rows = db.execute(
+            "SELECT id FROM swimmers WHERE competition_id=? ORDER BY created_at, id",
+            (cid,),
+        ).fetchall()
+        for idx, r in enumerate(rows, start=1):
+            db.execute(
+                "UPDATE swimmers SET name=?, parent_name=NULL, parent_contact=NULL WHERE id=?",
+                (f"Swimmer {idx}", dict(r)["id"]),
+            )
+        db.commit()
+
+    logger.info("Anonymized %d swimmers for competition %s", len(rows), cid)
+    return ok({"anonymized": len(rows)})
+
+
 @competitions_bp.route("/competitions", methods=["POST"])
 def create_competition():
     data = request.get_json(silent=True) or {}

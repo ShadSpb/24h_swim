@@ -62,6 +62,7 @@ class DynamicDataApi implements DataApi {
   async getCompetitionsByOrganizer(organizerId: string) { return this.getApi().getCompetitionsByOrganizer(organizerId); }
   async saveCompetition(competition: any) { return this.getApi().saveCompetition(competition); }
   async deleteCompetition(id: string) { return this.getApi().deleteCompetition(id); }
+  async anonymizeCompetition(id: string) { return this.getApi().anonymizeCompetition(id); }
   async getTeams() { return this.getApi().getTeams(); }
   async getTeamById(id: string) { return this.getApi().getTeamById(id); }
   async getTeamsByCompetition(competitionId: string) { return this.getApi().getTeamsByCompetition(competitionId); }

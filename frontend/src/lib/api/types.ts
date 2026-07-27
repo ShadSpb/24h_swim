@@ -91,6 +91,8 @@ export interface DataApi {
   getCompetitionsByOrganizer(organizerId: string): Promise<Competition[]>;
   saveCompetition(competition: Competition): Promise<void>;
   deleteCompetition(id: string): Promise<void>;
+  /** Irreversibly anonymize swimmer names for a finished competition. */
+  anonymizeCompetition(id: string): Promise<void>;
 
   // Teams
   getTeams(): Promise<Team[]>;

@@ -146,6 +146,10 @@ export class RemoteDataApi implements DataApi {
     await makeRequest(this.config, this.config.endpoints.competitions, 'DELETE', { pathId: id });
   }
 
+  async anonymizeCompetition(id: string): Promise<void> {
+    await makeRequest(this.config, `/competitions/${id}/anonymize`, 'POST');
+  }
+
   // Teams
   async getTeams(): Promise<Team[]> {
     return makeRequest<Team[]>(this.config, this.config.endpoints.teams, 'GET');
