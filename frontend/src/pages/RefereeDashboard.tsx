@@ -17,6 +17,7 @@ import {
   LapCount
 } from '@/lib/api';
 import { useConnectionStatus, isNetworkError } from '@/hooks/useConnectionStatus';
+import { useCompetitionAutoRefresh } from '@/hooks/useCompetitionAutoRefresh';
 import { getContrastText, SWATCH_BORDER } from '@/lib/utils/color';
 import { ConnectionIndicator } from '@/components/competition/ConnectionIndicator';
 import { Waves, AlertCircle, UserCheck, UserX, RefreshCw, Repeat } from 'lucide-react';
@@ -90,6 +91,22 @@ export default function RefereeDashboard() {
     const interval = setInterval(updateElapsed, 1000);
     return () => clearInterval(interval);
   }, [selectedCompetition?.actualStartTime, selectedCompetition?.status]);
+
+  // Auto-refresh competition status so referees never have to reload the page.
+  // When the organizer presses Start, this flips the +1 button to enabled within
+  // a few seconds — critical because iPad Safari can block the manual refresh,
+  // which previously left referees unable to count until a reload.
+  // Functional update keyed by id so a mid-poll competition switch is ignored.
+  const applyPolledCompetition = useCallback((updated: Competition) => {
+    setSelectedCompetition(prev => (prev && prev.id === updated.id ? updated : prev));
+  }, []);
+  useCompetitionAutoRefresh({
+    competitionId: selectedCompetition?.id,
+    onCompetition: applyPolledCompetition,
+    onActiveSessions: setActiveSessions,
+    onSynced: markSynced,
+    onSyncError: markSyncError,
+  });
 
   const loadCompetitions = useCallback(async () => {
     if (!user) return;
