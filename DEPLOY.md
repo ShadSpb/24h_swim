@@ -127,3 +127,36 @@ docker network ls | grep nginx-network || docker network create --subnet=10.200.
 ```
 
 Then set `DEPLOY_PATH=/opt/24h_swim` in GitHub Secrets.
+
+## Security Headers (nginx, one-time)
+
+The Flask API sends its own security headers (HSTS, nosniff, deny-frame,
+`default-src 'none'` CSP — see `add_security_headers` in `backend/app.py`).
+The **frontend** site's headers must come from nginx:
+
+1. Copy [`deploy/nginx-security-headers.conf`](deploy/nginx-security-headers.conf)
+   to the server, e.g. `/etc/nginx/snippets/`.
+2. In the HTTPS `server` block for `24swim.de` add:
+
+   ```nginx
+   include /etc/nginx/snippets/nginx-security-headers.conf;
+   ```
+
+3. Make sure port 80 redirects to HTTPS (it currently returns 404):
+
+   ```nginx
+   server {
+       listen 80;
+       server_name 24swim.de www.24swim.de api.24swim.de;
+       return 301 https://$host$request_uri;
+   }
+   ```
+
+4. `nginx -t && systemctl reload nginx`, then verify:
+
+   ```bash
+   curl -sI https://24swim.de/ | grep -iE "strict-transport|content-security|x-frame"
+   ```
+
+Caveats are documented inside the snippet (add_header inheritance,
+`includeSubDomains`, don't double-apply to the api vhost).

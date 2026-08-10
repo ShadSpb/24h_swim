@@ -64,6 +64,24 @@ def create_app() -> Flask:
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
+    # ── Security headers ──────────────────────────────────────────────────────
+    # This API serves JSON only, so the CSP can be maximally strict: nothing may
+    # load or frame these responses. HSTS pins browsers to HTTPS for the api
+    # subdomain (nginx terminates TLS in front; the header passes through).
+    # The frontend site's headers are set in nginx — see deploy/nginx-security-headers.conf.
+    @app.after_request
+    def add_security_headers(response):
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "no-referrer")
+        response.headers.setdefault(
+            "Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"
+        )
+        response.headers.setdefault(
+            "Strict-Transport-Security", "max-age=31536000"
+        )
+        return response
+
     @app.before_request
     def handle_options():
         if request.method == "OPTIONS":
